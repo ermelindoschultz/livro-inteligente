@@ -80,6 +80,8 @@ export async function extractBookStructureStep(context, services) {
 		const { markdown, title, videos } = await convertHtmlToMarkdown(html);
 		const documentTitle = extractDocumentTitle(html);
 
+		await dest.writeFile(`${context.bookSlug}/${chapter.file_path}`, html);
+
 		if (title) {
 			chapter.title = title;
 		}

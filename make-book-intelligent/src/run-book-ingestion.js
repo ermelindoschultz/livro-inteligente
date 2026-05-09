@@ -1,4 +1,5 @@
 import { extractBookStructureStep } from './steps/extract-book-structure-step.js';
+import { enrichMetadataStep } from './steps/enrich-metadata-step.js';
 import { persistBookMetadataStep } from './steps/persist-book-metadata-step.js';
 
 const BOOK_STATUS = {
@@ -30,6 +31,9 @@ export async function processBookIngestion(bookSlug, services) {
 	try {
         // Step 1: Extract book structure and save chapter markdown files to dest
 		await extractBookStructureStep(context, services);
+
+        // Step 2: Enrich chapter metadata with AI-generated content
+		await enrichMetadataStep(context, services);
 
         // Last Step: Persist extracted metadata
 		await persistBookMetadataStep(context, services);

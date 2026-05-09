@@ -18,7 +18,8 @@ export default {
 				const source = createR2Source(env.BOOKS_BUCKET);
 				const dest = createR2Dest(env.PROCESSED_BUCKET);
 				const bookMetadataStore = createD1BookMetadataStore(env.DB);
-				const result = await processBookIngestion(bookSlug, { bookMetadataStore, dest, source });
+				const ai = env.AI;
+				const result = await processBookIngestion(bookSlug, { ai, bookMetadataStore, dest, source });
 
 				console.log(
 					`book ingestion completed for ${bookSlug}: ${result.chapterCount} chapters -> ${result.outputMode}`
