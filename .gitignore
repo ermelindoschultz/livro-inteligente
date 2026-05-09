@@ -78,3 +78,6 @@ temp/
 *.tmp
 *.bak
 *.swp
+
+examples/*
+!examples/.gitkeep 
