@@ -72,7 +72,7 @@ export default function EnrichmentWidget({ metadata, currentChapterId, bookId, m
     typeof hostChapterId === 'string' &&
     hostChapterId.length > 0
   const hasItems = items.length > 0
-  const shouldRenderWidget = hasItems || canGenerateOnline
+  const shouldRenderWidget = hasItems
 
   const existingQuestions = useMemo(
     () => items.map((item) => item?.content?.question).filter((question) => typeof question === 'string' && question.length > 0),

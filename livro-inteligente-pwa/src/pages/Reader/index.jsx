@@ -128,6 +128,8 @@ export default function ReaderPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const { isOnline } = useConnectivity()
+  const contentStartRef = useRef(null)
+  const touchStartRef = useRef(null)
   const [isChapterMenuOpen, setIsChapterMenuOpen] = useState(false)
   const [isAiMenuOpen, setIsAiMenuOpen] = useState(false)
   const [aiFeedback, setAiFeedback] = useState(null)
@@ -159,6 +161,7 @@ export default function ReaderPage() {
   const book = bookQuery.data ?? null
   const metadata = book?.metadataSnapshot ?? null
   const {
+    chapters,
     chapterTree,
     currentChapter,
     currentPosition,
@@ -173,7 +176,6 @@ export default function ReaderPage() {
     totalChapters,
     currentMainChapter,
     currentChallengePages,
-    firstChallengePage,
     lastChallengePage,
     nextMainChapter,
     isAtLastOfGroup,
@@ -185,24 +187,15 @@ export default function ReaderPage() {
   const bossMeta = getBossMeta(currentMainChapter?.id)
   const bossQuestions = getBossQuestions(currentMainChapter?.id)
   const currentChapterMarkdownUrl = useMemo(() => resolveChapterMarkdownUrl(book, currentChapter), [book, currentChapter])
+  const effectiveView = view === 'intro' || view === 'boss' ? view : null
+  const isSpecialView = effectiveView === 'intro' || effectiveView === 'boss'
 
   const chapterQuery = useQuery({
     queryKey: ['chapter-content', book?.id ?? null, currentChapter?.id ?? null],
     queryFn: () => getChapterContent(book, currentChapter),
-    enabled: Boolean(book && currentChapter && view !== 'intro' && view !== 'boss'),
+    enabled: Boolean(book && currentChapter && effectiveView !== 'intro' && effectiveView !== 'boss'),
     staleTime: Infinity,
   })
-
-  useEffect(() => {
-    if (!currentMainChapter || currentChapter?.type !== 'chapter' || view || currentChallengeProgress?.introSeen) {
-      return
-    }
-
-    const nextParams = new URLSearchParams(searchParams)
-    nextParams.set('chapter', currentMainChapter.id)
-    nextParams.set('view', 'intro')
-    setSearchParams(nextParams, { replace: true })
-  }, [currentChapter?.type, currentMainChapter, currentChallengeProgress?.introSeen, searchParams, setSearchParams, view])
 
   useEffect(() => {
     return () => {
@@ -217,6 +210,14 @@ export default function ReaderPage() {
       setIsAiMenuOpen(false)
     }
   }, [isOnline])
+
+  useEffect(() => {
+    if (!contentStartRef.current) {
+      return
+    }
+
+    contentStartRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [currentChapter?.id, effectiveView])
 
   if (!hasValidId) {
     return <ReaderNotFound reason="O identificador informado na rota nao e valido." />
@@ -246,8 +247,25 @@ export default function ReaderPage() {
         ? chapterQuery.error.message
         : null
 
+  const findChapter = (chapterId) => chapters.find((chapter) => chapter.id === chapterId) ?? null
+
+  const goToReaderChapter = (chapterId, options = {}) => {
+    const chapter = findChapter(chapterId)
+
+    if (!chapter) {
+      return
+    }
+
+    if (options.openIntro && chapter.type === 'chapter') {
+      goToChapter(chapter.id, { view: 'intro' })
+      return
+    }
+
+    goToChapter(chapter.id, options)
+  }
+
   const handleChapterSelect = (chapterId) => {
-    goToChapter(chapterId)
+    goToReaderChapter(chapterId, { openIntro: true })
     setIsChapterMenuOpen(false)
     queryClient.invalidateQueries({ queryKey: ['stored-book', numericBookId] })
   }
@@ -282,7 +300,7 @@ export default function ReaderPage() {
     }
 
     await markIntroSeen(currentMainChapter.id)
-    navigateToView(null, firstChallengePage?.id ?? currentMainChapter.id)
+    navigateToView(null, currentMainChapter.id)
   }
 
   const handleOpenBoss = () => {
@@ -320,9 +338,89 @@ export default function ReaderPage() {
     navigateToView(null, lastChallengePage?.id ?? currentMainChapter.id)
   }
 
-  const isSpecialView = view === 'intro' || view === 'boss'
-
   const showAiTools = isOnline && !isSpecialView && Boolean(currentChapterMarkdownUrl)
+
+  const handleBackward = () => {
+    if (effectiveView === 'boss') {
+      handleRetreatFromBoss()
+      return
+    }
+
+    if (effectiveView === 'intro') {
+      if (hasPrevious && previousChapter) {
+        goToReaderChapter(previousChapter.id, { openIntro: previousChapter.type === 'chapter' })
+      }
+      return
+    }
+
+    if (currentChapter?.type === 'chapter') {
+      navigateToView('intro', currentChapter.id)
+      return
+    }
+
+    if (hasPrevious) {
+      goPrev()
+    }
+  }
+
+  const handleForward = () => {
+    if (effectiveView === 'intro') {
+      void handleStartChallenge()
+      return
+    }
+
+    if (effectiveView === 'boss') {
+      return
+    }
+
+    if (isAtLastOfGroup) {
+      handleOpenBoss()
+      return
+    }
+
+    if (hasNext && nextChapter) {
+      goToReaderChapter(nextChapter.id, { openIntro: nextChapter.type === 'chapter' })
+    }
+  }
+
+  const handleTouchStart = (event) => {
+    if (typeof window === 'undefined' || !window.matchMedia('(pointer: coarse)').matches || event.touches.length !== 1) {
+      touchStartRef.current = null
+      return
+    }
+
+    const touch = event.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }
+
+  const handleTouchEnd = (event) => {
+    if (!touchStartRef.current || isChapterMenuOpen || isAiMenuOpen) {
+      touchStartRef.current = null
+      return
+    }
+
+    const touch = event.changedTouches[0]
+
+    if (!touch) {
+      touchStartRef.current = null
+      return
+    }
+
+    const deltaX = touch.clientX - touchStartRef.current.x
+    const deltaY = touch.clientY - touchStartRef.current.y
+    touchStartRef.current = null
+
+    if (Math.abs(deltaX) < 72 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) {
+      return
+    }
+
+    if (deltaX < 0) {
+      handleForward()
+      return
+    }
+
+    handleBackward()
+  }
 
   const publishAiFeedback = (message, tone = 'default') => {
     if (aiFeedbackTimeoutRef.current) {
@@ -502,7 +600,12 @@ export default function ReaderPage() {
         </aside>
       ) : null}
 
-      <div className="flex-1 px-2 py-2 sm:px-3 sm:py-3">
+      <div
+        ref={contentStartRef}
+        className="flex-1 px-2 py-2 sm:px-3 sm:py-3"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {chapterError ? (
           <div className="mb-4 rounded-[24px] border border-[rgba(138,69,48,0.18)] bg-[var(--color-danger-soft)] px-4 py-4 text-sm text-[var(--color-danger)]">
             <div className="flex items-start gap-3">
@@ -512,7 +615,7 @@ export default function ReaderPage() {
           </div>
         ) : null}
 
-        {view === 'intro' && currentMainChapter ? (
+        {effectiveView === 'intro' && currentMainChapter ? (
           <ChallengeIntroPage
             challenge={currentMainChapter}
             challengePages={currentChallengePages}
@@ -522,7 +625,7 @@ export default function ReaderPage() {
           />
         ) : null}
 
-        {view === 'boss' && currentMainChapter ? (
+        {effectiveView === 'boss' && currentMainChapter ? (
           <BossFightPage
             challenge={currentMainChapter}
             bossMeta={bossMeta}
@@ -559,12 +662,20 @@ export default function ReaderPage() {
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
           <button
             type="button"
-            onClick={goPrev}
-            disabled={!hasPrevious}
+            onClick={handleBackward}
+            disabled={effectiveView === 'boss' ? false : !hasPrevious}
             className="inline-flex min-w-0 items-center gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-left text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
           >
             <ChevronLeft className="h-4 w-4 shrink-0" />
-            <span className="truncate">{previousChapter?.title ?? 'Inicio do livro'}</span>
+            <span className="truncate">
+              {effectiveView === 'boss'
+                ? 'Voltar ao capitulo'
+                : effectiveView === 'intro'
+                  ? previousChapter?.title ?? 'Inicio do livro'
+                  : currentChapter?.type === 'chapter'
+                    ? 'Introducao do desafio'
+                    : previousChapter?.title ?? 'Inicio do livro'}
+            </span>
           </button>
 
           <div className="text-center">
@@ -574,11 +685,19 @@ export default function ReaderPage() {
 
           <button
             type="button"
-            onClick={isAtLastOfGroup ? handleOpenBoss : goNext}
-            disabled={isAtLastOfGroup ? false : !hasNext}
+            onClick={handleForward}
+            disabled={effectiveView === 'boss' ? true : effectiveView === 'intro' ? false : isAtLastOfGroup ? false : !hasNext}
             className="inline-flex min-w-0 items-center justify-end gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-right text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
           >
-            <span className="truncate">{isAtLastOfGroup ? 'Desafio final' : nextChapter?.title ?? 'Fim do livro'}</span>
+            <span className="truncate">
+              {effectiveView === 'intro'
+                ? 'Comecar leitura'
+                : isAtLastOfGroup
+                  ? 'Desafio final'
+                  : nextChapter?.type === 'chapter'
+                    ? 'Introducao do desafio'
+                    : nextChapter?.title ?? 'Fim do livro'}
+            </span>
             <ChevronRight className="h-4 w-4 shrink-0" />
           </button>
         </div>

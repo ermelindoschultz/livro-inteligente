@@ -12,6 +12,14 @@ function getChallengePages(chapters, challengeId) {
   return chapters.filter((chapter) => chapter.id === challengeId || chapter.parent_id === challengeId)
 }
 
+function getChallengeSections(chapters, challengeId) {
+  if (!challengeId) {
+    return []
+  }
+
+  return chapters.filter((chapter) => chapter.parent_id === challengeId)
+}
+
 function buildFallbackBoss(chapter, challengePages) {
   const sectionCount = Math.max(challengePages.length - 1, 1)
 
@@ -54,7 +62,8 @@ export function useGameReader({ book, metadata }) {
       ? reader.currentChapter
       : mainChapters.find((chapter) => chapter.id === reader.currentChapter?.parent_id) ?? null
   const currentChallengePages = getChallengePages(reader.chapters, currentMainChapter?.id)
-  const firstChallengePage = currentChallengePages[0] ?? currentMainChapter ?? null
+  const currentChallengeSections = getChallengeSections(reader.chapters, currentMainChapter?.id)
+  const firstChallengePage = currentChallengeSections[0] ?? currentMainChapter ?? null
   const lastChallengePage = currentChallengePages.at(-1) ?? currentMainChapter ?? null
   const currentMainChapterIndex = mainChapters.findIndex((chapter) => chapter.id === currentMainChapter?.id)
   const nextMainChapter = currentMainChapterIndex >= 0 ? mainChapters[currentMainChapterIndex + 1] ?? null : null

@@ -87,7 +87,7 @@ export default function BookViewer({ bodyHtml, chapterTitle, isLoading, styleshe
     contentWrapper.innerHTML = bodyHtml
     shadowRoot.appendChild(contentWrapper)
 
-    hostRef.current.scrollTo({ top: 0, behavior: 'auto' })
+    hostRef.current.scrollTo({ top: 0, behavior: 'smooth' })
   }, [bodyHtml, stylesheetUrls])
 
   return (

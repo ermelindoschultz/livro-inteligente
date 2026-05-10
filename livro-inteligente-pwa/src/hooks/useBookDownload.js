@@ -74,8 +74,7 @@ export function useBookDownload() {
   }, [syncBooksQuery.data, queryClient, isOnline])
 
   const books = [...(storedBooksQuery.data ?? [])].sort(sortBooks)
-  // When offline, show all cached books. When online, show all books (which are synced from API)
-  const visibleBooks = books
+  const visibleBooks = isOnline ? books : books.filter((book) => book.isDownloaded)
   const downloadedCount = books.filter((book) => book.isDownloaded).length
   const hasApiConfig = Boolean(apiBaseUrl)
   const syncError = syncBooksQuery.error

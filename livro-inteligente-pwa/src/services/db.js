@@ -74,7 +74,7 @@ export async function listStoredBooks() {
 }
 
 export async function listCachedBooks() {
-  return libraryDb.books.where('lastSyncedAt').notEqual(null).toArray()
+  return libraryDb.books.filter((book) => Boolean(book?.isDownloaded || book?.lastSyncedAt)).toArray()
 }
 
 export async function getStoredBookById(bookId) {

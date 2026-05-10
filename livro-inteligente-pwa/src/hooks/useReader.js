@@ -55,7 +55,9 @@ export function useReader({ book, metadata }) {
     const nextParams = new URLSearchParams(searchParams)
     nextParams.set('chapter', nextChapter.id)
 
-    if (!options.preserveView) {
+    if (options.view) {
+      nextParams.set('view', options.view)
+    } else if (!options.preserveView) {
       nextParams.delete('view')
     }
 
