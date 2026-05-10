@@ -1,5 +1,6 @@
 import { BookOpenText, RefreshCcw, TriangleAlert } from 'lucide-react'
 import BookCard from '../../components/BookCard.jsx'
+import ConfirmDialog from '../../components/ConfirmDialog.jsx'
 import { useBookDownload } from '../../hooks/useBookDownload.js'
 
 function ShelfSkeleton() {
@@ -54,8 +55,10 @@ export default function LibraryPage() {
     showSkeleton,
     syncErrorMessage,
     syncBooksQuery,
+    deleteDialog,
     handleDownload,
     handleOpen,
+    handleDelete,
     handleRefresh,
   } = useBookDownload()
 
@@ -122,12 +125,25 @@ export default function LibraryPage() {
               uiState={downloadStates[book.id]}
               onDownload={handleDownload}
               onOpen={handleOpen}
+              onDelete={handleDelete}
             />
           ))
         ) : (
           <EmptyState isOnline={isOnline} hasConfig={hasApiConfig} isUsingCache={isUsingCache} />
         )}
       </section>
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        title={deleteDialog.title}
+        description={deleteDialog.description}
+        confirmLabel={deleteDialog.confirmLabel}
+        cancelLabel={deleteDialog.cancelLabel}
+        isDangerous={deleteDialog.isDangerous}
+        isLoading={deleteDialog.isLoading}
+        onConfirm={deleteDialog.handleConfirm}
+        onCancel={deleteDialog.handleCancel}
+      />
     </>
   )
 }

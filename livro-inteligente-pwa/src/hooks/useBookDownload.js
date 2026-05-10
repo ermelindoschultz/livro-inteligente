@@ -8,8 +8,9 @@ import {
   listStoredBooks,
   syncRemoteBooks,
 } from '../services/db.js'
-import { downloadBook } from '../services/bookDownload.js'
+import { downloadBook, removeBook } from '../services/bookDownload.js'
 import { useConnectivity } from './useConnectivity.js'
+import { useConfirmDialog } from './useConfirmDialog.js'
 
 function sortBooks(left, right) {
   if (left.isDownloaded !== right.isDownloaded) {
@@ -27,6 +28,7 @@ export function useBookDownload() {
   const navigate = useNavigate()
   const { isOnline } = useConnectivity()
   const [downloadStates, setDownloadStates] = useState({})
+  const deleteDialog = useConfirmDialog()
 
   useEffect(() => {
     const handleBooksChanged = () => {
@@ -134,6 +136,52 @@ export function useBookDownload() {
     navigate(`/book/${book.id}`)
   }
 
+  const handleDelete = async (book) => {
+    deleteDialog.open({
+      title: 'Remover livro?',
+      description: `Tem certeza que deseja remover "${book.title}" do dispositivo? O livro continuará disponível para re-baixar depois.`,
+      confirmLabel: 'Remover',
+      cancelLabel: 'Cancelar',
+      isDangerous: true,
+      onConfirm: async () => {
+        try {
+          deleteDialog.setLoading(true)
+
+          startTransition(() => {
+            setDownloadStates((current) => ({
+              ...current,
+              [book.id]: { status: 'pending', progress: 0, error: null },
+            }))
+          })
+
+          await removeBook(book)
+
+          startTransition(() => {
+            setDownloadStates((current) => ({
+              ...current,
+              [book.id]: { status: 'idle', progress: 0, error: null },
+            }))
+          })
+          queryClient.invalidateQueries({ queryKey: ['stored-books'] })
+          deleteDialog.close()
+        } catch (error) {
+          startTransition(() => {
+            setDownloadStates((current) => ({
+              ...current,
+              [book.id]: {
+                status: 'failed',
+                progress: 0,
+                error: error instanceof Error ? error.message : 'Falha ao remover o livro.',
+              },
+            }))
+          })
+          queryClient.invalidateQueries({ queryKey: ['stored-books'] })
+          deleteDialog.setLoading(false)
+        }
+      },
+    })
+  }
+
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['books-sync', apiBaseUrl] })
   }
@@ -153,8 +201,10 @@ export function useBookDownload() {
     showSkeleton,
     syncErrorMessage,
     syncBooksQuery,
+    deleteDialog,
     handleDownload,
     handleOpen,
+    handleDelete,
     handleRefresh,
   }
 }

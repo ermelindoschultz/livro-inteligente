@@ -440,3 +440,18 @@ export async function openBook(book) {
 
   return { mode: 'offline' }
 }
+
+export async function removeBook(book) {
+  // Delete the cache storage for this book
+  const cacheDeleted = await caches.delete(`book-store-${book.id}`)
+
+  if (!cacheDeleted) {
+    console.warn(`Cache para livro ${book.id} não encontrado, continuando com limpeza do banco.`)
+  }
+
+  // Reset the database record (keeps metadata but removes download state)
+  const { removeBook: removeFromDb } = await import('./db.js')
+  await removeFromDb(book.id)
+
+  return { cacheDeleted }
+}

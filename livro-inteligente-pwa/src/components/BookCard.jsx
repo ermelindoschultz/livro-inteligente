@@ -14,7 +14,7 @@ function getActionState(book, uiState) {
   }
 }
 
-export default function BookCard({ book, openingBookId, uiState, onDownload, onOpen }) {
+export default function BookCard({ book, openingBookId, uiState, onDownload, onOpen, onDelete }) {
   const actionState = getActionState(book, uiState)
 
   return (
@@ -67,6 +67,7 @@ export default function BookCard({ book, openingBookId, uiState, onDownload, onO
           state={actionState}
           onDownload={onDownload}
           onOpen={onOpen}
+          onDelete={onDelete}
         />
       </div>
     </article>
