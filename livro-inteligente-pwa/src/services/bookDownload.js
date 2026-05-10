@@ -34,6 +34,20 @@ function resolveMetadataUrl(book) {
   return new URL('metadata.json', withTrailingSlash(publicBookUrl)).toString()
 }
 
+function resolveManifestUrl(book) {
+  if (book.manifestUrl) {
+    return book.manifestUrl
+  }
+
+  const publicBookUrl = resolvePublicBookUrl(book)
+
+  if (!publicBookUrl) {
+    throw new Error('O livro não possui publicUrl nem R2 configurado para resolver o manifest.json.')
+  }
+
+  return new URL('manifest.json', withTrailingSlash(publicBookUrl)).toString()
+}
+
 function normalizeAssetDescriptor(entry) {
   if (typeof entry === 'string') {
     return entry
@@ -85,6 +99,71 @@ function extractAssetUrls(metadata, metadataUrl) {
     .filter(Boolean)
 
   return [...new Set(urls)].filter((url) => url !== metadataUrl)
+}
+
+function extractManifestAssetUrls(entries, manifestUrl) {
+  if (!Array.isArray(entries)) {
+    return []
+  }
+
+  const urls = entries
+    .filter((entry) => typeof entry === 'string' && entry.length > 0)
+    .map((entry) => {
+      try {
+        return new URL(entry, manifestUrl).toString()
+      } catch {
+        return null
+      }
+    })
+    .filter(Boolean)
+
+  return [...new Set(urls)]
+}
+
+async function fetchJson(url, errorMessage) {
+  const response = await fetch(url, { cache: 'no-store' })
+
+  if (!response.ok) {
+    throw new Error(errorMessage)
+  }
+
+  return response
+}
+
+async function loadManifestEntries(manifestUrl) {
+  try {
+    const manifestResponse = await fetch(manifestUrl, { cache: 'no-store' })
+
+    if (manifestResponse.status === 404) {
+      return {
+        manifestEntries: null,
+        manifestResponse: null,
+        usedFallback: true,
+      }
+    }
+
+    if (!manifestResponse.ok) {
+      throw new Error(`Falha ao carregar manifest.json em ${manifestUrl}.`)
+    }
+
+    const manifestEntries = await manifestResponse.clone().json()
+
+    if (!Array.isArray(manifestEntries)) {
+      throw new Error('O manifest.json do livro não contém uma lista de arquivos.')
+    }
+
+    return {
+      manifestEntries,
+      manifestResponse,
+      usedFallback: false,
+    }
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error('O manifest.json do livro não é um JSON válido.')
+    }
+
+    throw error
+  }
 }
 
 async function cacheRemoteAsset(cache, url) {
@@ -222,6 +301,7 @@ export async function downloadBook(book, options = {}) {
   const { onProgress } = options
   const cacheName = `book-store-${book.id}`
   const metadataUrl = resolveMetadataUrl(book)
+  const manifestUrl = resolveManifestUrl(book)
   let completed = 0
 
   await ensureBookRecord(book)
@@ -235,16 +315,21 @@ export async function downloadBook(book, options = {}) {
   try {
     await caches.delete(cacheName)
     const cache = await caches.open(cacheName)
-    const metadataResponse = await fetch(metadataUrl, { cache: 'no-store' })
-
-    if (!metadataResponse.ok) {
-      throw new Error(`Falha ao carregar metadata.json do livro ${book.id}.`)
-    }
+    const metadataResponse = await fetchJson(metadataUrl, `Falha ao carregar metadata.json do livro ${book.id}.`)
 
     await cache.put(metadataUrl, metadataResponse.clone())
     const metadata = await metadataResponse.json()
-    const assetUrls = extractAssetUrls(metadata, metadataUrl)
-    const totalFiles = assetUrls.length + 1
+    const { manifestEntries, manifestResponse, usedFallback } = await loadManifestEntries(manifestUrl)
+
+    if (manifestResponse) {
+      await cache.put(manifestUrl, manifestResponse.clone())
+    }
+
+    const manifestAssetUrls = manifestEntries ? extractManifestAssetUrls(manifestEntries, manifestUrl) : []
+    const assetUrls = (manifestEntries ? manifestAssetUrls : extractAssetUrls(metadata, metadataUrl))
+      .filter((assetUrl) => assetUrl !== metadataUrl && assetUrl !== manifestUrl)
+
+    const totalFiles = assetUrls.length + 1 + (manifestResponse ? 1 : 0)
 
     completed = 1
     await updateBookRecord(book.id, {
@@ -256,6 +341,18 @@ export async function downloadBook(book, options = {}) {
       metadataUrl,
     })
     notifyProgress(onProgress, completed, totalFiles)
+
+    if (manifestResponse) {
+      completed += 1
+      await updateBookRecord(book.id, {
+        downloadStatus: 'pending',
+        downloadProgress: Math.round((completed / totalFiles) * 100),
+        fileCount: totalFiles,
+        cachedFileCount: completed,
+      })
+
+      notifyProgress(onProgress, completed, totalFiles)
+    }
 
     await runWithConcurrency(assetUrls, DOWNLOAD_CONCURRENCY, async (assetUrl) => {
       await cacheRemoteAsset(cache, assetUrl)
@@ -280,6 +377,8 @@ export async function downloadBook(book, options = {}) {
       downloadedAt: new Date().toISOString(),
       metadataSnapshot: metadata,
       metadataUrl,
+      manifestUrl,
+      downloadSource: usedFallback ? 'metadata-fallback' : 'manifest',
     })
 
     return {
