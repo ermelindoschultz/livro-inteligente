@@ -4,7 +4,7 @@ const BOOK_STATUS = {
 };
 
 const DEFAULT_CRON = '*/10 * * * *';
-const RETRYABLE_STATUSES = new Set([BOOK_STATUS.FAILED]);
+const RETRYABLE_STATUSES = []; //new Set([BOOK_STATUS.FAILED]);
 const QUERY_CHUNK_SIZE = 100;
 
 export default {
