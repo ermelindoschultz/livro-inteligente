@@ -1,18 +1,38 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ChevronLeft, ChevronRight, LoaderCircle, Menu, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, LoaderCircle, Menu, Sparkles, TriangleAlert } from 'lucide-react'
 import { Crown } from 'pixelarticons/react/Crown'
 import { Lock } from 'pixelarticons/react/Lock'
 import { Sword } from 'pixelarticons/react/Sword'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import BookViewer from '../../components/BookViewer/index.jsx'
 import EnrichmentWidget from '../../components/EnrichmentWidget/index.jsx'
+import { useConnectivity } from '../../hooks/useConnectivity.js'
 import { useGameProgress } from '../../hooks/useGameProgress.js'
 import { useGameReader } from '../../hooks/useGameReader.js'
+import { resolvePublicBookUrl } from '../../services/api.js'
 import { getChapterContent } from '../../services/bookDownload.js'
 import { BOOKS_CHANGED_EVENT, getStoredBookById } from '../../services/db.js'
 import BossFightPage from './BossFightPage.jsx'
 import ChallengeIntroPage from './ChallengeIntroPage.jsx'
+
+function resolveChapterMarkdownUrl(book, chapter) {
+  if (!chapter?.markdown_path) {
+    return null
+  }
+
+  const publicBookUrl = resolvePublicBookUrl(book)
+
+  if (!publicBookUrl) {
+    return null
+  }
+
+  try {
+    return new URL(chapter.markdown_path, publicBookUrl).toString()
+  } catch {
+    return null
+  }
+}
 
 function ReaderNotFound({ reason }) {
   return (
@@ -93,7 +113,11 @@ export default function ReaderPage() {
   const { id } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
+  const { isOnline } = useConnectivity()
   const [isChapterMenuOpen, setIsChapterMenuOpen] = useState(false)
+  const [isAiMenuOpen, setIsAiMenuOpen] = useState(false)
+  const [aiFeedback, setAiFeedback] = useState(null)
+  const aiFeedbackTimeoutRef = useRef(null)
   const numericBookId = Number(id)
   const hasValidId = Number.isInteger(numericBookId) && numericBookId > 0
   const view = searchParams.get('view')
@@ -146,6 +170,7 @@ export default function ReaderPage() {
   const currentChallengeProgress = currentMainChapter ? progressMap[currentMainChapter.id] : null
   const bossMeta = getBossMeta(currentMainChapter?.id)
   const bossQuestions = getBossQuestions(currentMainChapter?.id)
+  const currentChapterMarkdownUrl = useMemo(() => resolveChapterMarkdownUrl(book, currentChapter), [book, currentChapter])
 
   const chapterQuery = useQuery({
     queryKey: ['chapter-content', book?.id ?? null, currentChapter?.id ?? null],
@@ -164,6 +189,20 @@ export default function ReaderPage() {
     nextParams.set('view', 'intro')
     setSearchParams(nextParams, { replace: true })
   }, [currentChapter?.type, currentMainChapter, currentChallengeProgress?.introSeen, searchParams, setSearchParams, view])
+
+  useEffect(() => {
+    return () => {
+      if (aiFeedbackTimeoutRef.current) {
+        window.clearTimeout(aiFeedbackTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isOnline) {
+      setIsAiMenuOpen(false)
+    }
+  }, [isOnline])
 
   if (!hasValidId) {
     return <ReaderNotFound reason="O identificador informado na rota nao e valido." />
@@ -269,6 +308,53 @@ export default function ReaderPage() {
 
   const isSpecialView = view === 'intro' || view === 'boss'
 
+  const showAiTools = isOnline && !isSpecialView && Boolean(currentChapterMarkdownUrl)
+
+  const publishAiFeedback = (message, tone = 'default') => {
+    if (aiFeedbackTimeoutRef.current) {
+      window.clearTimeout(aiFeedbackTimeoutRef.current)
+    }
+
+    setAiFeedback({ message, tone })
+    aiFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setAiFeedback(null)
+      aiFeedbackTimeoutRef.current = null
+    }, 2800)
+  }
+
+  const handleOpenChapterMarkdown = () => {
+    if (!currentChapterMarkdownUrl) {
+      publishAiFeedback('Este capitulo nao possui markdown para IA.', 'error')
+      return
+    }
+
+    window.open(currentChapterMarkdownUrl, '_blank', 'noopener,noreferrer')
+    setIsAiMenuOpen(false)
+  }
+
+  const handleCopyChapterForAi = async () => {
+    if (!currentChapterMarkdownUrl) {
+      publishAiFeedback('Este capitulo nao possui markdown para IA.', 'error')
+      return
+    }
+
+    try {
+      const response = await fetch(currentChapterMarkdownUrl, { cache: 'no-store' })
+
+      if (!response.ok) {
+        throw new Error(`Falha ao carregar o markdown (${response.status}).`)
+      }
+
+      const markdown = await response.text()
+      await navigator.clipboard.writeText(markdown)
+      publishAiFeedback('Capitulo copiado para a area de transferencia.', 'success')
+      setIsAiMenuOpen(false)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nao foi possivel copiar o capitulo para IA.'
+      publishAiFeedback(message, 'error')
+    }
+  }
+
   return (
     <section className="relative flex min-h-[calc(100svh-8.5rem)] flex-col overflow-visible rounded-[28px] border border-[var(--color-line)] bg-[rgba(255,251,244,0.9)] shadow-[var(--shadow-card)] backdrop-blur-md">
       <header className="sticky top-0 z-20 border-b border-[var(--color-line)] bg-[rgba(255,250,241,0.96)] px-3 py-2.5 backdrop-blur-md sm:px-5">
@@ -286,20 +372,75 @@ export default function ReaderPage() {
             <h1 className="truncate text-lg font-semibold text-[var(--color-ink)]">{book.title}</h1>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsChapterMenuOpen((value) => !value)}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/80 text-[var(--color-ink)]"
-            aria-expanded={isChapterMenuOpen}
-            aria-label="Abrir sumario"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
+          <div className="relative flex shrink-0 items-center gap-2">
+            {showAiTools ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsAiMenuOpen((value) => !value)}
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-line)] bg-white/80 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]"
+                  aria-expanded={isAiMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Abrir ferramentas de IA"
+                >
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(173,92,40,0.12)]">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="hidden sm:inline">Texto para IA</span>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isAiMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isAiMenuOpen ? (
+                  <div className="absolute right-0 top-[calc(100%+0.45rem)] z-30 min-w-[16rem] overflow-hidden rounded-[18px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.98)] p-1.5 shadow-[0_18px_40px_rgba(47,36,25,0.16)]">
+                    <button
+                      type="button"
+                      onClick={handleOpenChapterMarkdown}
+                      className="flex w-full rounded-[14px] px-3 py-2 text-left text-sm font-medium text-[var(--color-ink)] transition hover:bg-[rgba(47,36,25,0.05)]"
+                      role="menuitem"
+                    >
+                      Ver markdown
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCopyChapterForAi}
+                      className="flex w-full rounded-[14px] px-3 py-2 text-left text-sm font-medium text-[var(--color-ink)] transition hover:bg-[rgba(47,36,25,0.05)]"
+                      role="menuitem"
+                    >
+                      Copiar capitulo para IA
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => setIsChapterMenuOpen((value) => !value)}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/80 text-[var(--color-ink)]"
+              aria-expanded={isChapterMenuOpen}
+              aria-label="Abrir sumario"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-3 text-xs text-[var(--color-muted)]">
-          <span className="truncate">{currentChapter?.title ?? 'Capitulo indisponivel'}</span>
-          <span className="shrink-0">{Math.min(currentPosition + 1, totalChapters)} / {totalChapters || 0}</span>
+        <div className="mt-2 flex items-start justify-between gap-3 text-xs text-[var(--color-muted)]">
+          <div className="min-w-0 flex-1">
+            <span className="block truncate">{currentChapter?.title ?? 'Capitulo indisponivel'}</span>
+
+            {aiFeedback ? (
+              <p
+                className={`mt-1 truncate text-[11px] ${
+                  aiFeedback.tone === 'error' ? 'text-[var(--color-danger)]' : 'text-[#0f766e]'
+                }`}
+              >
+                {aiFeedback.message}
+              </p>
+            ) : null}
+          </div>
+
+          <span className="shrink-0 pt-0.5">{Math.min(currentPosition + 1, totalChapters)} / {totalChapters || 0}</span>
         </div>
         <div className="mt-2 h-1 overflow-hidden rounded-full bg-[rgba(47,36,25,0.08)]">
           <div className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-300" style={{ width: `${progressPercent}%` }} />
