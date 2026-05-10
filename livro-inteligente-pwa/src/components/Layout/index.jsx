@@ -67,7 +67,7 @@ export default function Layout({ children }) {
             <div className="flex items-start gap-3">
               <WifiOff className="mt-0.5 h-5 w-5 shrink-0" />
               <p className="leading-6">
-                Modo offline ativo. Rotas internas continuam funcionando com o app shell, e a leitura depende apenas dos livros ja baixados.
+                Você está sem conexão com a internet. Só é possível ler os livros que já foram baixados no seu dispositivo.
               </p>
             </div>
           </section>

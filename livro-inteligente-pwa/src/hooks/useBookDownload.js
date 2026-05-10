@@ -49,16 +49,16 @@ export function useBookDownload() {
   })
 
   const syncBooksQuery = useQuery({
-    queryKey: ['books-sync', apiBaseUrl, isOnline],
+    queryKey: ['books-sync', apiBaseUrl],
     queryFn: async () => {
-      const { books, source } = await fetchBooksWithOfflineSupport(isOnline)
-      // Only sync to DB if we got the books from the API
+      const { books, source } = await fetchBooksWithOfflineSupport(true)
       if (source === 'api') {
         await syncRemoteBooks(books)
       }
       return { books, source }
     },
-    retry: isOnline ? 1 : 0,
+    enabled: isOnline,
+    retry: 1,
   })
 
   useEffect(() => {
@@ -132,7 +132,14 @@ export function useBookDownload() {
   }
 
   const handleOpen = async (book) => {
-    navigate(`/book/${book.id}`)
+    const nextPath = `/book/${book.id}`
+
+    if (typeof window !== 'undefined') {
+      window.location.assign(nextPath)
+      return
+    }
+
+    navigate(nextPath)
   }
 
   const handleDelete = async (book) => {
@@ -186,7 +193,9 @@ export function useBookDownload() {
   }
 
   const showSkeleton =
-    storedBooksQuery.isLoading || (isOnline && syncBooksQuery.isLoading && books.length === 0)
+    storedBooksQuery.isLoading ||
+    (storedBooksQuery.isFetching && books.length === 0) ||
+    (isOnline && syncBooksQuery.isLoading && books.length === 0)
 
   return {
     books,

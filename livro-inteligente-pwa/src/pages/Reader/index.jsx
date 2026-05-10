@@ -120,6 +120,7 @@ export default function ReaderPage() {
   const contentStartRef = useRef(null)
   const touchStartRef = useRef(null)
   const [isChapterMenuOpen, setIsChapterMenuOpen] = useState(false)
+  const [isAiMenuOpen, setIsAiMenuOpen] = useState(false)
   const [aiFeedback, setAiFeedback] = useState(null)
   const aiFeedbackTimeoutRef = useRef(null)
   const numericBookId = Number(id)
@@ -144,6 +145,7 @@ export default function ReaderPage() {
     queryFn: () => getStoredBookById(numericBookId),
     enabled: hasValidId,
     staleTime: 5_000,
+    refetchOnMount: 'always',
   })
 
   const book = bookQuery.data ?? null
@@ -211,7 +213,7 @@ export default function ReaderPage() {
     return <ReaderNotFound reason="O identificador informado na rota nao e valido." />
   }
 
-  if (bookQuery.isLoading) {
+  if (bookQuery.isLoading || (bookQuery.isFetching && !book)) {
     return (
       <section className="rounded-[28px] border border-[var(--color-line)] bg-[var(--color-paper)] p-6 shadow-[var(--shadow-card)]">
         <div className="inline-flex items-center gap-2 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
