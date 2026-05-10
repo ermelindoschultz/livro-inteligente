@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createBooksController } from './books/books.controller.js';
+import { generateTriviaHandler } from './books/generate-trivia.handler.js';
 
 export const createRoutes = () => {
 	const app = new Hono();
@@ -35,6 +36,7 @@ export const createRoutes = () => {
 	app.get('/books', (c) => booksController.list(c));
 	app.get('/books/:id', (c) => booksController.getById(c));
 	app.patch('/books/:id', (c) => booksController.patch(c));
+	app.post('/books/:id/trivia/generate', (c) => generateTriviaHandler(c));
 
 	return app;
 };

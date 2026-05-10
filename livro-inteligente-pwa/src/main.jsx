@@ -5,6 +5,7 @@ import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.jsx'
 import { ConnectionStatusModalProvider } from './context/ConnectionStatusModalContext.jsx'
+import { WidgetModalProvider } from './context/WidgetModalContext.jsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,7 +23,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ConnectionStatusModalProvider>
-        <App />
+        <WidgetModalProvider>
+          <App />
+        </WidgetModalProvider>
       </ConnectionStatusModalProvider>
     </QueryClientProvider>
   </StrictMode>,

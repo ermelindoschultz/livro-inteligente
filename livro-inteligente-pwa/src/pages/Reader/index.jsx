@@ -34,6 +34,20 @@ function resolveChapterMarkdownUrl(book, chapter) {
   }
 }
 
+function buildChatGptChapterUrl({ bookTitle, chapterTitle, markdownUrl }) {
+  const prompt = [
+    'Use este capitulo em markdown como contexto.',
+    `Livro: ${bookTitle || 'Livro atual'}`,
+    `Capitulo: ${chapterTitle || 'Capitulo atual'}`,
+    `Markdown: ${markdownUrl}`,
+    'Primeiro, leia o conteúdo. Depois, me ajude com resumo, explicações e perguntas sobre este capítulo.',
+  ].join('\n')
+
+  const url = new URL('https://chatgpt.com/')
+  url.searchParams.set('q', prompt)
+  return url.toString()
+}
+
 function ReaderNotFound({ reason }) {
   return (
     <section className="rounded-[28px] border border-dashed border-[var(--color-line)] bg-[rgba(255,251,244,0.6)] p-8 shadow-[var(--shadow-card)]">
@@ -355,6 +369,22 @@ export default function ReaderPage() {
     }
   }
 
+  const handleOpenInChatGpt = () => {
+    if (!currentChapterMarkdownUrl) {
+      publishAiFeedback('Este capitulo nao possui markdown para IA.', 'error')
+      return
+    }
+
+    const chatGptUrl = buildChatGptChapterUrl({
+      bookTitle: book?.title,
+      chapterTitle: currentChapter?.title,
+      markdownUrl: currentChapterMarkdownUrl,
+    })
+
+    window.open(chatGptUrl, '_blank', 'noopener,noreferrer')
+    setIsAiMenuOpen(false)
+  }
+
   return (
     <section className="relative flex min-h-[calc(100svh-8.5rem)] flex-col overflow-visible rounded-[28px] border border-[var(--color-line)] bg-[rgba(255,251,244,0.9)] shadow-[var(--shadow-card)] backdrop-blur-md">
       <header className="sticky top-0 z-20 border-b border-[var(--color-line)] bg-[rgba(255,250,241,0.96)] px-3 py-2.5 backdrop-blur-md sm:px-5">
@@ -386,12 +416,20 @@ export default function ReaderPage() {
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(173,92,40,0.12)]">
                     <Sparkles className="h-3.5 w-3.5" />
                   </span>
-                  <span className="hidden sm:inline">Texto para IA</span>
+                  <span className="hidden sm:inline">Use sua IA favorita</span>
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isAiMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {isAiMenuOpen ? (
                   <div className="absolute right-0 top-[calc(100%+0.45rem)] z-30 min-w-[16rem] overflow-hidden rounded-[18px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.98)] p-1.5 shadow-[0_18px_40px_rgba(47,36,25,0.16)]">
+                    <button
+                      type="button"
+                      onClick={handleOpenInChatGpt}
+                      className="flex w-full rounded-[14px] px-3 py-2 text-left text-sm font-medium text-[var(--color-ink)] transition hover:bg-[rgba(47,36,25,0.05)]"
+                      role="menuitem"
+                    >
+                      Abrir no ChatGpt
+                    </button>
                     <button
                       type="button"
                       onClick={handleOpenChapterMarkdown}
@@ -507,6 +545,8 @@ export default function ReaderPage() {
 
             <EnrichmentWidget
               key={currentChapter?.id ?? 'no-chapter'}
+              bookId={book?.id ?? null}
+              markdownUrl={currentChapterMarkdownUrl}
               metadata={metadata}
               currentChapterId={currentChapter?.id ?? null}
             />
