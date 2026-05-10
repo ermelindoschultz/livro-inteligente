@@ -1,0 +1,151 @@
+import { startTransition, useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import { apiBaseUrl, ApiConfigurationError, fetchBooks } from '../services/api.js'
+import {
+  BOOKS_CHANGED_EVENT,
+  ensureBookRecord,
+  listStoredBooks,
+  syncRemoteBooks,
+} from '../services/db.js'
+import { downloadBook } from '../services/bookDownload.js'
+import { useConnectivity } from './useConnectivity.js'
+
+function sortBooks(left, right) {
+  if (left.isDownloaded !== right.isDownloaded) {
+    return Number(right.isDownloaded) - Number(left.isDownloaded)
+  }
+
+  return left.title.localeCompare(right.title, 'pt-BR', {
+    sensitivity: 'base',
+    numeric: true,
+  })
+}
+
+export function useBookDownload() {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { isOnline } = useConnectivity()
+  const [downloadStates, setDownloadStates] = useState({})
+
+  useEffect(() => {
+    const handleBooksChanged = () => {
+      queryClient.invalidateQueries({ queryKey: ['stored-books'] })
+    }
+
+    window.addEventListener(BOOKS_CHANGED_EVENT, handleBooksChanged)
+    return () => {
+      window.removeEventListener(BOOKS_CHANGED_EVENT, handleBooksChanged)
+    }
+  }, [queryClient])
+
+  const storedBooksQuery = useQuery({
+    queryKey: ['stored-books'],
+    queryFn: listStoredBooks,
+    initialData: [],
+    staleTime: 5_000,
+  })
+
+  const syncBooksQuery = useQuery({
+    queryKey: ['books-sync', apiBaseUrl],
+    enabled: isOnline,
+    queryFn: async () => {
+      const books = await fetchBooks()
+      await syncRemoteBooks(books)
+      return books
+    },
+    retry: 1,
+  })
+
+  useEffect(() => {
+    if (!syncBooksQuery.data) {
+      return
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['stored-books'] })
+  }, [syncBooksQuery.data, queryClient])
+
+  const books = [...(storedBooksQuery.data ?? [])].sort(sortBooks)
+  const visibleBooks = isOnline ? books : books.filter((book) => book.isDownloaded)
+  const downloadedCount = books.filter((book) => book.isDownloaded).length
+  const hasApiConfig = Boolean(apiBaseUrl)
+  const syncError = syncBooksQuery.error
+
+  const syncErrorMessage = syncError
+    ? syncError instanceof ApiConfigurationError
+      ? 'Sua biblioteca ainda nao esta pronta para sincronizar.'
+      : 'Nao foi possivel atualizar a estante agora. Tente novamente em instantes.'
+    : null
+
+  const openingBookId = null
+
+  const handleDownload = async (book) => {
+    try {
+      await ensureBookRecord(book)
+      startTransition(() => {
+        setDownloadStates((current) => ({
+          ...current,
+          [book.id]: { status: 'pending', progress: 0, error: null },
+        }))
+      })
+
+      await downloadBook(book, {
+        onProgress: ({ percent }) => {
+          startTransition(() => {
+            setDownloadStates((current) => ({
+              ...current,
+              [book.id]: { status: 'pending', progress: percent, error: null },
+            }))
+          })
+        },
+      })
+
+      startTransition(() => {
+        setDownloadStates((current) => ({
+          ...current,
+          [book.id]: { status: 'completed', progress: 100, error: null },
+        }))
+      })
+      queryClient.invalidateQueries({ queryKey: ['stored-books'] })
+    } catch (error) {
+      startTransition(() => {
+        setDownloadStates((current) => ({
+          ...current,
+          [book.id]: {
+            status: 'failed',
+            progress: 0,
+            error: error instanceof Error ? error.message : 'Falha ao baixar o livro.',
+          },
+        }))
+      })
+      queryClient.invalidateQueries({ queryKey: ['stored-books'] })
+    }
+  }
+
+  const handleOpen = async (book) => {
+    navigate(`/book/${book.id}`)
+  }
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['books-sync', apiBaseUrl] })
+  }
+
+  const showSkeleton =
+    storedBooksQuery.isLoading || (isOnline && syncBooksQuery.isLoading && books.length === 0)
+
+  return {
+    books,
+    visibleBooks,
+    downloadedCount,
+    downloadStates,
+    openingBookId,
+    hasApiConfig,
+    isOnline,
+    showSkeleton,
+    syncErrorMessage,
+    syncBooksQuery,
+    handleDownload,
+    handleOpen,
+    handleRefresh,
+  }
+}
