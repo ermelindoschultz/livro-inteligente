@@ -9,6 +9,12 @@ libraryDb.version(1).stores({
   readingProgress: '++id, bookId, chapterId, updatedAt',
 })
 
+libraryDb.version(2).stores({
+  books: 'id, title, isDownloaded, downloadStatus, updatedAt, lastSyncedAt',
+  readingProgress: '++id, bookId, chapterId, updatedAt',
+  gameProgress: '[bookId+challengeId], bookId, challengeId, bossDefeated, updatedAt',
+})
+
 function now() {
   return new Date().toISOString()
 }
@@ -105,6 +111,10 @@ export async function deleteReadingProgress(bookId) {
   await libraryDb.readingProgress.where('bookId').equals(bookId).delete()
 }
 
+export async function deleteGameProgress(bookId) {
+  await libraryDb.gameProgress.where('bookId').equals(bookId).delete()
+}
+
 export async function removeBook(bookId) {
   const currentBook = await libraryDb.books.get(bookId)
 
@@ -127,6 +137,7 @@ export async function removeBook(bookId) {
 
   // Clear reading progress
   await deleteReadingProgress(bookId)
+  await deleteGameProgress(bookId)
 
   emitBooksChanged()
   return record

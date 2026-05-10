@@ -1,40 +1,6 @@
-import { generateWhatYouWillLearn } from '../lib/enrichment/what-you-will-learn.js';
+import { generateBossMetadata } from '../lib/enrichment/boss-metadata.js';
+import { generateBossTrivia } from '../lib/enrichment/boss-trivia.js';
 import { generateTrivia } from '../lib/enrichment/trivia.js';
-import { generateResumeToTest } from '../lib/enrichment/resume-to-test.js';
-
-/**
- * Stack-based random page selector.
- *
- * Iterates through the pool in random order. For each candidate, flips a
- * coin (yes/no). If the pool would be exhausted before reaching `count`
- * selections, remaining candidates are taken automatically so the target
- * count is always met when enough pages are available.
- */
-function selectTriviaPages(middlePages, count = 2) {
-	const pool = [...middlePages];
-	const selected = [];
-
-	while (pool.length > 0 && selected.length < count) {
-		const needed = count - selected.length;
-
-		// If remaining pages equal what we still need, take them all.
-		if (pool.length === needed) {
-			selected.push(...pool.splice(0));
-			break;
-		}
-
-		// Pop a random candidate from the pool.
-		const index = Math.floor(Math.random() * pool.length);
-		const [candidate] = pool.splice(index, 1);
-
-		// Yes or no.
-		if (Math.random() < 0.5) {
-			selected.push(candidate);
-		}
-	}
-
-	return selected;
-}
 
 async function saveMetadataSnapshot(context, dest) {
 	context.metadata.updated_at = new Date().toISOString();
@@ -54,14 +20,34 @@ export async function enrichMetadataStep(context, services) {
 
 	if (mainChapters.length === 0) return;
 
-	const firstChapter = mainChapters[0];
-	const lastChapter = mainChapters[mainChapters.length - 1];
-
 	// Helper: collect ordered pages for a chapter (chapter entry + child sections).
 	function pagesOf(mainChapter) {
 		return allChapters
 			.filter((entry) => entry.id === mainChapter.id || entry.parent_id === mainChapter.id)
 			.sort((left, right) => left.position - right.position);
+	}
+
+	function clearGeneratedEnrichment(mainChapter) {
+		mainChapter.enrichment = (mainChapter.enrichment ?? []).filter(
+			(item) => !['what_you_will_learn', 'resume_to_test', 'trivia', 'boss_trivia'].includes(item?.type),
+		);
+		delete mainChapter.boss;
+	}
+
+	function getTrainingPages(pages) {
+		const numberedSections = pages.filter(
+			(page) =>
+				page.type === 'section' &&
+				Array.isArray(page.order_parts) &&
+				page.order_parts.length > 1 &&
+				!/(resumo|conclus[aã]o|sum[aá]rio)/i.test(page.title ?? ''),
+		);
+
+		return numberedSections.slice(0, Math.max(numberedSections.length - 1, 0));
+	}
+
+	function getBossSourcePages(pages) {
+		return pages.filter((page) => !['activities', 'annex', 'about'].includes(page.type));
 	}
 
 	// Helper: read all markdowns for a set of pages.
@@ -73,66 +59,36 @@ export async function enrichMetadataStep(context, services) {
 		return map;
 	}
 
-	// --- Fixed (1): "What you will learn" on the first page of the first chapter ---
-	{
-		const pages = pagesOf(firstChapter);
-		if (pages.length > 0) {
-			const markdownByPageId = await readMarkdowns(pages);
-			const allContent = Object.values(markdownByPageId).join('\n\n---\n\n');
+	for (const mainChapter of mainChapters) {
+		clearGeneratedEnrichment(mainChapter);
 
-			firstChapter.enrichment = firstChapter.enrichment ?? [];
-			firstChapter.enrichment.push({
-				type: 'what_you_will_learn',
-				page_id: pages[0].id,
-				content: await generateWhatYouWillLearn(allContent, ai),
-			});
+		const pages = pagesOf(mainChapter);
+		const trainingPages = getTrainingPages(pages);
 
-			await saveMetadataSnapshot(context, dest);
-		}
-	}
-
-	// --- Random (2 + 3): Two trivias across middle pages of non-first chapters ---
-	{
-		// Build the pool of all eligible middle pages from non-first chapters.
-		const triviaPool = [];
-		for (const mainChapter of mainChapters.slice(1)) {
-			const pages = pagesOf(mainChapter);
-			const middlePages = pages.slice(1, pages.length - 1);
-			for (const page of middlePages) {
-				triviaPool.push({ chapter: mainChapter, page });
-			}
-		}
-
-		const triviaTargets = selectTriviaPages(triviaPool, 2);
-
-		for (const { chapter, page } of triviaTargets) {
+		for (const page of trainingPages) {
 			const markdown = await dest.readFile(`${context.bookSlug}/${page.markdown_path}`);
-			chapter.enrichment = chapter.enrichment ?? [];
-			chapter.enrichment.push({
+			mainChapter.enrichment.push({
 				type: 'trivia',
 				page_id: page.id,
 				content: await generateTrivia(markdown, ai),
 			});
 		}
 
-		await saveMetadataSnapshot(context, dest);
-	}
+		const bossSourcePages = getBossSourcePages(pages);
+		const markdownByPageId = await readMarkdowns(bossSourcePages);
+		const allContent = Object.values(markdownByPageId).join('\n\n---\n\n');
 
-	// --- Fixed (4): "Resume to test" on the last page of the last chapter ---
-	{
-		const pages = pagesOf(lastChapter);
-		if (pages.length > 0) {
-			const markdownByPageId = await readMarkdowns(pages);
-			const allContent = Object.values(markdownByPageId).join('\n\n---\n\n');
+		mainChapter.boss = await generateBossMetadata(allContent, ai);
 
-			lastChapter.enrichment = lastChapter.enrichment ?? [];
-			lastChapter.enrichment.push({
-				type: 'resume_to_test',
-				page_id: pages[pages.length - 1].id,
-				content: await generateResumeToTest(allContent, ai),
+		const bossQuestions = await generateBossTrivia(allContent, ai);
+		for (const content of bossQuestions.slice(0, 5)) {
+			mainChapter.enrichment.push({
+				type: 'boss_trivia',
+				page_id: mainChapter.id,
+				content,
 			});
-
-			await saveMetadataSnapshot(context, dest);
 		}
+
+		await saveMetadataSnapshot(context, dest);
 	}
 }

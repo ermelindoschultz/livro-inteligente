@@ -64,9 +64,12 @@ export default function Trivia({ content }) {
               : 'border-[rgba(138,69,48,0.24)] bg-[var(--color-danger-soft)] text-[var(--color-danger)]'
           }`}
         >
-          {isAnswerCorrect
-            ? 'Resposta correta. Continue a leitura.'
-            : `Resposta incorreta. A alternativa correta e ${correctOption}.`}
+          <p className="font-semibold">
+            {isAnswerCorrect
+              ? 'Resposta correta. Continue a leitura.'
+              : `Resposta incorreta. A alternativa correta e ${correctOption}.`}
+          </p>
+          <p className="mt-2">{content?.explanation ?? 'A justificativa detalhada sera adicionada na proxima geracao inteligente deste livro.'}</p>
         </div>
       ) : null}
     </div>

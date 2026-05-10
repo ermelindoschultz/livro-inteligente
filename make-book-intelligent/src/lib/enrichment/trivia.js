@@ -1,8 +1,11 @@
+import { parseAiJsonResponse } from './parse-ai-json-response.js';
+
 // Best model for quick, engaging trivia generation (fast 8B, suitable for fun Q&A).
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 
 const SYSTEM_PROMPT = `Você é um criador de quiz educacional.
-Com base no conteúdo fornecido, crie UMA pergunta de trivia envolvente em português.
+Com base no conteúdo fornecido, crie UMA pergunta de treinamento em português.
+Priorize compreensão, aplicação e leitura cuidadosa. Evite perguntas de decoração, pegadinhas ou mera cópia literal.
 Responda APENAS com um objeto JSON válido, sem markdown, sem texto fora do JSON.
 
 Estrutura esperada:
@@ -14,7 +17,8 @@ Estrutura esperada:
     { "label": "C", "text": "<alternativa>" },
     { "label": "D", "text": "<alternativa>" }
   ],
-  "correct": "<letra da alternativa correta>"
+	"correct": "<letra da alternativa correta>",
+	"explanation": "<explicacao curta dizendo por que a resposta correta faz sentido>"
 }`;
 
 export async function generateTrivia(pageContent, ai) {
@@ -28,5 +32,5 @@ export async function generateTrivia(pageContent, ai) {
 		],
 	});
 
-	return JSON.parse(result.response);
+	return parseAiJsonResponse(result);
 }

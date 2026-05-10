@@ -159,7 +159,7 @@ async function loadManifestEntries(manifestUrl) {
     }
   } catch (error) {
     if (error instanceof SyntaxError) {
-      throw new Error('O manifest.json do livro não é um JSON válido.')
+      throw new Error('O manifest.json do livro não é um JSON válido.', { cause: error })
     }
 
     throw error

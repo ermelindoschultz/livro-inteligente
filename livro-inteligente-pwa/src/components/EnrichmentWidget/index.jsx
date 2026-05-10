@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Sparkles, X } from 'lucide-react'
+import { X } from 'lucide-react'
+import { Sword } from 'pixelarticons/react/Sword'
 import EnrichmentPanel from './EnrichmentPanel.jsx'
 
 function collectEnrichmentItems(metadata, currentChapterId) {
@@ -13,7 +14,7 @@ function collectEnrichmentItems(metadata, currentChapterId) {
     }
 
     return chapter.enrichment
-      .filter((item) => item?.page_id === currentChapterId)
+      .filter((item) => item?.page_id === currentChapterId && item?.type === 'trivia')
       .map((item, index) => ({
         ...item,
         id: `${chapter.id}-${item.type}-${index}`,
@@ -43,15 +44,15 @@ export default function EnrichmentWidget({ metadata, currentChapterId }) {
           <section className="max-h-[min(55svh,34rem)] overflow-hidden rounded-[28px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.96)] p-3 shadow-[0_30px_90px_rgba(47,36,25,0.22)] backdrop-blur-md">
             <header className="mb-3 flex items-center justify-between gap-3 px-1">
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Enrichment</p>
-                <h2 className="text-base font-semibold text-[var(--color-ink)]">Conteudo extra desta pagina</h2>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Treinamento</p>
+                <h2 className="text-base font-semibold text-[var(--color-ink)]">Pratique esta pagina</h2>
               </div>
 
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/80 text-[var(--color-ink)]"
-                aria-label="Fechar conteudo extra"
+                aria-label="Fechar treinamento"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -68,12 +69,12 @@ export default function EnrichmentWidget({ metadata, currentChapterId }) {
           onClick={() => setIsOpen((value) => !value)}
           className="inline-flex h-14 items-center gap-3 rounded-full border border-[rgba(195,122,74,0.22)] bg-[var(--color-accent)] px-5 text-sm font-semibold text-white shadow-[0_22px_50px_rgba(173,92,40,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_26px_55px_rgba(173,92,40,0.4)]"
           aria-expanded={isOpen}
-          aria-label={isOpen ? 'Fechar conteudo extra' : 'Abrir conteudo extra'}
+          aria-label={isOpen ? 'Fechar treinamento' : 'Abrir treinamento'}
         >
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/16">
-            <Sparkles className="h-4 w-4" />
+            <Sword width={16} height={16} />
           </span>
-          <span>{isOpen ? 'Fechar extras' : `Ver extras (${items.length})`}</span>
+          <span>{isOpen ? 'Fechar treino' : 'Treinar'}</span>
         </button>
       </div>
     </div>

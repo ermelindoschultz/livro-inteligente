@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ChevronLeft, ChevronRight, LoaderCircle, Menu, TriangleAlert } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { Crown } from 'pixelarticons/react/Crown'
+import { Lock } from 'pixelarticons/react/Lock'
+import { Sword } from 'pixelarticons/react/Sword'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import BookViewer from '../../components/BookViewer/index.jsx'
 import EnrichmentWidget from '../../components/EnrichmentWidget/index.jsx'
-import { useReader } from '../../hooks/useReader.js'
+import { useGameProgress } from '../../hooks/useGameProgress.js'
+import { useGameReader } from '../../hooks/useGameReader.js'
 import { getChapterContent } from '../../services/bookDownload.js'
 import { BOOKS_CHANGED_EVENT, getStoredBookById } from '../../services/db.js'
+import BossFightPage from './BossFightPage.jsx'
+import ChallengeIntroPage from './ChallengeIntroPage.jsx'
 
 function ReaderNotFound({ reason }) {
   return (
@@ -25,7 +31,25 @@ function ReaderNotFound({ reason }) {
   )
 }
 
-function ChapterTreeItem({ item, currentChapterId, onSelect, level = 0 }) {
+function ChapterStatusIcon({ item, progressMap }) {
+  if (item?.type !== 'chapter') {
+    return null
+  }
+
+  const progress = progressMap?.[item.id]
+
+  if (progress?.bossDefeated) {
+    return <Crown width={16} height={16} className="text-[var(--color-accent)]" />
+  }
+
+  if (progress?.introSeen) {
+    return <Sword width={16} height={16} className="text-[var(--color-accent)]" />
+  }
+
+  return <Lock width={16} height={16} className="text-[var(--color-muted)]" />
+}
+
+function ChapterTreeItem({ item, currentChapterId, onSelect, progressMap, level = 0 }) {
   const isActive = item.id === currentChapterId
 
   return (
@@ -40,7 +64,10 @@ function ChapterTreeItem({ item, currentChapterId, onSelect, level = 0 }) {
         }`}
         style={{ paddingLeft: `${level * 18 + 12}px` }}
       >
-        <span className="min-w-0 truncate">{item.label}</span>
+        <span className="flex min-w-0 items-center gap-2 truncate">
+          <ChapterStatusIcon item={item} progressMap={progressMap} />
+          <span className="min-w-0 truncate">{item.label}</span>
+        </span>
         <span className="ml-3 shrink-0 text-[11px] uppercase tracking-[0.2em] text-[var(--color-muted)]">{item.order}</span>
       </button>
 
@@ -52,6 +79,7 @@ function ChapterTreeItem({ item, currentChapterId, onSelect, level = 0 }) {
               item={child}
               currentChapterId={currentChapterId}
               onSelect={onSelect}
+              progressMap={progressMap}
               level={level + 1}
             />
           ))}
@@ -63,10 +91,12 @@ function ChapterTreeItem({ item, currentChapterId, onSelect, level = 0 }) {
 
 export default function ReaderPage() {
   const { id } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const [isChapterMenuOpen, setIsChapterMenuOpen] = useState(false)
   const numericBookId = Number(id)
   const hasValidId = Number.isInteger(numericBookId) && numericBookId > 0
+  const view = searchParams.get('view')
 
   useEffect(() => {
     const handleBooksChanged = () => {
@@ -103,14 +133,37 @@ export default function ReaderPage() {
     previousChapter,
     progressPercent,
     totalChapters,
-  } = useReader({ book: book ?? {}, metadata })
+    currentMainChapter,
+    currentChallengePages,
+    firstChallengePage,
+    lastChallengePage,
+    nextMainChapter,
+    isAtLastOfGroup,
+    getBossMeta,
+    getBossQuestions,
+  } = useGameReader({ book: book ?? {}, metadata })
+  const { progressMap, markIntroSeen, saveBossProgress, markBossDefeated } = useGameProgress(book?.id)
+  const currentChallengeProgress = currentMainChapter ? progressMap[currentMainChapter.id] : null
+  const bossMeta = getBossMeta(currentMainChapter?.id)
+  const bossQuestions = getBossQuestions(currentMainChapter?.id)
 
   const chapterQuery = useQuery({
     queryKey: ['chapter-content', book?.id ?? null, currentChapter?.id ?? null],
     queryFn: () => getChapterContent(book, currentChapter),
-    enabled: Boolean(book && currentChapter),
+    enabled: Boolean(book && currentChapter && view !== 'intro' && view !== 'boss'),
     staleTime: Infinity,
   })
+
+  useEffect(() => {
+    if (!currentMainChapter || currentChapter?.type !== 'chapter' || view || currentChallengeProgress?.introSeen) {
+      return
+    }
+
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set('chapter', currentMainChapter.id)
+    nextParams.set('view', 'intro')
+    setSearchParams(nextParams, { replace: true })
+  }, [currentChapter?.type, currentMainChapter, currentChallengeProgress?.introSeen, searchParams, setSearchParams, view])
 
   if (!hasValidId) {
     return <ReaderNotFound reason="O identificador informado na rota nao e valido." />
@@ -145,6 +198,76 @@ export default function ReaderPage() {
     setIsChapterMenuOpen(false)
     queryClient.invalidateQueries({ queryKey: ['stored-book', numericBookId] })
   }
+
+  const navigateToView = (nextView, chapterId, options = {}) => {
+    const nextParams = new URLSearchParams(searchParams)
+
+    if (chapterId) {
+      nextParams.set('chapter', chapterId)
+    }
+
+    if (nextView) {
+      nextParams.set('view', nextView)
+    } else {
+      nextParams.delete('view')
+    }
+
+    setSearchParams(nextParams, options)
+  }
+
+  const handleRevealChallenge = async () => {
+    if (!currentMainChapter) {
+      return
+    }
+
+    await markIntroSeen(currentMainChapter.id)
+  }
+
+  const handleStartChallenge = async () => {
+    if (!currentMainChapter) {
+      return
+    }
+
+    await markIntroSeen(currentMainChapter.id)
+    navigateToView(null, firstChallengePage?.id ?? currentMainChapter.id)
+  }
+
+  const handleOpenBoss = () => {
+    if (!currentMainChapter) {
+      return
+    }
+
+    navigateToView('boss', currentMainChapter.id)
+  }
+
+  const handleRetreatFromBoss = () => {
+    navigateToView(null, lastChallengePage?.id ?? currentMainChapter?.id ?? currentChapter?.id)
+  }
+
+  const handleSaveBossProgress = async (bossCorrectCount) => {
+    if (!currentMainChapter) {
+      return
+    }
+
+    await saveBossProgress(currentMainChapter.id, bossCorrectCount)
+  }
+
+  const handleFinishBoss = async () => {
+    if (!currentMainChapter) {
+      return
+    }
+
+    await markBossDefeated(currentMainChapter.id)
+
+    if (nextMainChapter) {
+      navigateToView('intro', nextMainChapter.id)
+      return
+    }
+
+    navigateToView(null, lastChallengePage?.id ?? currentMainChapter.id)
+  }
+
+  const isSpecialView = view === 'intro' || view === 'boss'
 
   return (
     <section className="relative flex min-h-[calc(100svh-8.5rem)] flex-col overflow-visible rounded-[28px] border border-[var(--color-line)] bg-[rgba(255,251,244,0.9)] shadow-[var(--shadow-card)] backdrop-blur-md">
@@ -193,6 +316,7 @@ export default function ReaderPage() {
                 item={item}
                 currentChapterId={currentChapter?.id}
                 onSelect={handleChapterSelect}
+                progressMap={progressMap}
               />
             ))}
           </nav>
@@ -209,21 +333,48 @@ export default function ReaderPage() {
           </div>
         ) : null}
 
-        <BookViewer
-          bodyHtml={chapterQuery.data?.bodyHtml ?? ''}
-          chapterTitle={currentChapter?.title ?? ''}
-          isLoading={chapterQuery.isLoading || chapterQuery.isFetching}
-          stylesheetUrls={chapterQuery.data?.stylesheetUrls ?? []}
-        />
+        {view === 'intro' && currentMainChapter ? (
+          <ChallengeIntroPage
+            challenge={currentMainChapter}
+            challengePages={currentChallengePages}
+            bossMeta={bossMeta}
+            onReveal={handleRevealChallenge}
+            onStart={handleStartChallenge}
+          />
+        ) : null}
 
-        <EnrichmentWidget
-          key={currentChapter?.id ?? 'no-chapter'}
-          metadata={metadata}
-          currentChapterId={currentChapter?.id ?? null}
-        />
+        {view === 'boss' && currentMainChapter ? (
+          <BossFightPage
+            challenge={currentMainChapter}
+            bossMeta={bossMeta}
+            questions={bossQuestions}
+            progress={currentChallengeProgress}
+            onRetreat={handleRetreatFromBoss}
+            onSaveBossProgress={handleSaveBossProgress}
+            onFinishBoss={handleFinishBoss}
+          />
+        ) : null}
+
+        {!isSpecialView ? (
+          <>
+            <BookViewer
+              bodyHtml={chapterQuery.data?.bodyHtml ?? ''}
+              chapterTitle={currentChapter?.title ?? ''}
+              isLoading={chapterQuery.isLoading || chapterQuery.isFetching}
+              stylesheetUrls={chapterQuery.data?.stylesheetUrls ?? []}
+            />
+
+            <EnrichmentWidget
+              key={currentChapter?.id ?? 'no-chapter'}
+              metadata={metadata}
+              currentChapterId={currentChapter?.id ?? null}
+            />
+          </>
+        ) : null}
       </div>
 
-      <footer className="sticky bottom-0 z-20 border-t border-[var(--color-line)] bg-[rgba(255,250,241,0.96)] px-3 py-2.5 backdrop-blur-md sm:px-5">
+      {!isSpecialView ? (
+        <footer className="sticky bottom-0 z-20 border-t border-[var(--color-line)] bg-[rgba(255,250,241,0.96)] px-3 py-2.5 backdrop-blur-md sm:px-5">
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
           <button
             type="button"
@@ -242,15 +393,16 @@ export default function ReaderPage() {
 
           <button
             type="button"
-            onClick={goNext}
-            disabled={!hasNext}
+            onClick={isAtLastOfGroup ? handleOpenBoss : goNext}
+            disabled={isAtLastOfGroup ? false : !hasNext}
             className="inline-flex min-w-0 items-center justify-end gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-right text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
           >
-            <span className="truncate">{nextChapter?.title ?? 'Fim do livro'}</span>
+            <span className="truncate">{isAtLastOfGroup ? 'Desafio final' : nextChapter?.title ?? 'Fim do livro'}</span>
             <ChevronRight className="h-4 w-4 shrink-0" />
           </button>
         </div>
-      </footer>
+        </footer>
+      ) : null}
     </section>
   )
 }

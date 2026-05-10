@@ -44,7 +44,7 @@ export function useReader({ book, metadata }) {
     }
   }, [currentChapter, requestedChapterId, searchParams, setSearchParams])
 
-  const goToChapter = (chapterId) => {
+  const goToChapter = (chapterId, options = {}) => {
     const nextIndex = findChapterIndex(chapters, chapterId)
 
     if (nextIndex < 0) {
@@ -54,6 +54,11 @@ export function useReader({ book, metadata }) {
     const nextChapter = chapters[nextIndex]
     const nextParams = new URLSearchParams(searchParams)
     nextParams.set('chapter', nextChapter.id)
+
+    if (!options.preserveView) {
+      nextParams.delete('view')
+    }
+
     setSearchParams(nextParams)
     void updateBookRecord(book.id, { lastReadChapterId: nextChapter.id })
   }
