@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ChevronLeft, ChevronRight, LoaderCircle, Menu, TriangleAlert } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import BookViewer from '../../components/BookViewer/index.jsx'
+import EnrichmentWidget from '../../components/EnrichmentWidget/index.jsx'
 import { useReader } from '../../hooks/useReader.js'
 import { getChapterContent } from '../../services/bookDownload.js'
 import { BOOKS_CHANGED_EVENT, getStoredBookById } from '../../services/db.js'
@@ -213,6 +214,12 @@ export default function ReaderPage() {
           chapterTitle={currentChapter?.title ?? ''}
           isLoading={chapterQuery.isLoading || chapterQuery.isFetching}
           stylesheetUrls={chapterQuery.data?.stylesheetUrls ?? []}
+        />
+
+        <EnrichmentWidget
+          key={currentChapter?.id ?? 'no-chapter'}
+          metadata={metadata}
+          currentChapterId={currentChapter?.id ?? null}
         />
       </div>
 
