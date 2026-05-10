@@ -4,27 +4,15 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "livro-inteligente-api",
-	"main": "src/index.js",
+	"name": "livro-inteligente-pwa",
 	"compatibility_date": "2026-05-09",
+	"pages_build_output_dir": "./dist",
 	"observability": {
 		"enabled": true
 	},
 	"upload_source_maps": true,
 	"compatibility_flags": [
 		"nodejs_compat"
-	],
-	"vars": {
-		"CORS_ALLOW_ORIGIN": "*",
-		"R2_PUBLIC_BASE_URL": ""
-	},
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "livro-inteligente",
-			"database_id": "f76cc294-17a3-4a91-8ec2-b0a5a6aeb0af",
-			"migrations_dir": "migrations"
-		}
 	]
 	/**
 	 * Smart Placement

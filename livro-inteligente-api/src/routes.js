@@ -1,9 +1,28 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { createBooksController } from './books/books.controller.js';
 
 export const createRoutes = () => {
 	const app = new Hono();
 	const booksController = createBooksController();
+
+	app.use(
+		'*',
+		cors({
+			origin: (origin, c) => {
+				const allowedOrigin = c.env.CORS_ALLOW_ORIGIN?.trim();
+
+				if (!allowedOrigin || allowedOrigin === '*') {
+					return '*';
+				}
+
+				return origin === allowedOrigin ? origin : allowedOrigin;
+			},
+			allowMethods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+			allowHeaders: ['Content-Type'],
+			maxAge: 86400,
+		})
+	);
 
 	app.get('/', (c) => {
 		return c.json({

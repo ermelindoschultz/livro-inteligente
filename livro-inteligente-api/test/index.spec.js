@@ -42,6 +42,53 @@ describe('Livro Inteligente API', () => {
 		});
 	});
 
+	it('adds CORS headers to books responses', async () => {
+		const request = new Request('http://example.com/books', {
+			headers: {
+				origin: 'https://livro-inteligente.pages.dev',
+			},
+		});
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(
+			request,
+			{
+				...env,
+				CORS_ALLOW_ORIGIN: '*',
+				DB: createDbStub(),
+			},
+			ctx,
+		);
+		await waitOnExecutionContext(ctx);
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get('access-control-allow-origin')).toBe('*');
+	});
+
+	it('handles CORS preflight requests', async () => {
+		const request = new Request('http://example.com/books', {
+			method: 'OPTIONS',
+			headers: {
+				origin: 'https://livro-inteligente.pages.dev',
+				'access-control-request-method': 'GET',
+			},
+		});
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(
+			request,
+			{
+				...env,
+				CORS_ALLOW_ORIGIN: '*',
+				DB: createDbStub(),
+			},
+			ctx,
+		);
+		await waitOnExecutionContext(ctx);
+
+		expect(response.status).toBe(204);
+		expect(response.headers.get('access-control-allow-origin')).toBe('*');
+		expect(response.headers.get('access-control-allow-methods')).toContain('GET');
+	});
+
 	it('lists available books (unit style)', async () => {
 		const request = new Request('http://example.com/books');
 		const ctx = createExecutionContext();
