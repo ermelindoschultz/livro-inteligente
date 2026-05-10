@@ -21,7 +21,7 @@ function ShelfSkeleton() {
   )
 }
 
-function EmptyState({ isOnline, hasConfig }) {
+function EmptyState({ isOnline, hasConfig, isUsingCache }) {
   return (
     <section className="rounded-[28px] border border-dashed border-[var(--color-line)] bg-[rgba(255,251,244,0.5)] p-8 text-center shadow-[var(--shadow-card)]">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
@@ -33,7 +33,9 @@ function EmptyState({ isOnline, hasConfig }) {
           ? hasConfig
             ? 'Ainda nao encontramos livros disponiveis. Volte em instantes para continuar sua leitura.'
             : 'Sua biblioteca ainda esta sendo preparada.'
-          : 'Sem conexao, a estante mostra apenas os livros que ja foram guardados no dispositivo.'}
+          : isUsingCache
+            ? 'Sem conexao. Nenhum livro foi ainda guardado neste dispositivo. Conecte-se a internet e sincronize sua biblioteca.'
+            : 'Sem conexao, a estante mostra apenas os livros que ja foram guardados no dispositivo.'}
       </p>
     </section>
   )
@@ -48,6 +50,7 @@ export default function LibraryPage() {
     openingBookId,
     hasApiConfig,
     isOnline,
+    isUsingCache,
     showSkeleton,
     syncErrorMessage,
     syncBooksQuery,
@@ -122,7 +125,7 @@ export default function LibraryPage() {
             />
           ))
         ) : (
-          <EmptyState isOnline={isOnline} hasConfig={hasApiConfig} />
+          <EmptyState isOnline={isOnline} hasConfig={hasApiConfig} isUsingCache={isUsingCache} />
         )}
       </section>
     </>

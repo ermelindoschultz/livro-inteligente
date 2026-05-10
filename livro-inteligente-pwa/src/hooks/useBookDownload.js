@@ -1,7 +1,7 @@
 import { startTransition, useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { apiBaseUrl, ApiConfigurationError, fetchBooks } from '../services/api.js'
+import { apiBaseUrl, ApiConfigurationError, fetchBooksWithOfflineSupport } from '../services/api.js'
 import {
   BOOKS_CHANGED_EVENT,
   ensureBookRecord,
@@ -47,14 +47,16 @@ export function useBookDownload() {
   })
 
   const syncBooksQuery = useQuery({
-    queryKey: ['books-sync', apiBaseUrl],
-    enabled: isOnline,
+    queryKey: ['books-sync', apiBaseUrl, isOnline],
     queryFn: async () => {
-      const books = await fetchBooks()
-      await syncRemoteBooks(books)
-      return books
+      const { books, source } = await fetchBooksWithOfflineSupport(isOnline)
+      // Only sync to DB if we got the books from the API
+      if (source === 'api') {
+        await syncRemoteBooks(books)
+      }
+      return { books, source }
     },
-    retry: 1,
+    retry: isOnline ? 1 : 0,
   })
 
   useEffect(() => {
@@ -62,16 +64,22 @@ export function useBookDownload() {
       return
     }
 
-    queryClient.invalidateQueries({ queryKey: ['stored-books'] })
-  }, [syncBooksQuery.data, queryClient])
+    // Invalidate stored books query when we get fresh data from API
+    // Or when we switch between online/offline modes
+    if (syncBooksQuery.data.source === 'api' || isOnline) {
+      queryClient.invalidateQueries({ queryKey: ['stored-books'] })
+    }
+  }, [syncBooksQuery.data, queryClient, isOnline])
 
   const books = [...(storedBooksQuery.data ?? [])].sort(sortBooks)
-  const visibleBooks = isOnline ? books : books.filter((book) => book.isDownloaded)
+  // When offline, show all cached books. When online, show all books (which are synced from API)
+  const visibleBooks = books
   const downloadedCount = books.filter((book) => book.isDownloaded).length
   const hasApiConfig = Boolean(apiBaseUrl)
   const syncError = syncBooksQuery.error
+  const isUsingCache = syncBooksQuery.data?.source === 'cache'
 
-  const syncErrorMessage = syncError
+  const syncErrorMessage = syncError && !isUsingCache
     ? syncError instanceof ApiConfigurationError
       ? 'Sua biblioteca ainda nao esta pronta para sincronizar.'
       : 'Nao foi possivel atualizar a estante agora. Tente novamente em instantes.'
@@ -141,6 +149,7 @@ export function useBookDownload() {
     openingBookId,
     hasApiConfig,
     isOnline,
+    isUsingCache,
     showSkeleton,
     syncErrorMessage,
     syncBooksQuery,
