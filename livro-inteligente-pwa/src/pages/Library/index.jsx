@@ -74,7 +74,7 @@ export default function LibraryPage() {
           </button>
         </div>
 
-        <h1 className="font-display mt-5 max-w-[12ch] text-[2.4rem] leading-[0.98] text-[var(--color-ink)] text-balance sm:text-[3.5rem]">
+        <h1 className="font-display mt-5 text-xl leading-[0.98] text-[var(--color-ink)] text-balance sm:text-4xl">
           Leia com calma, mesmo quando a internet nao ajudar.
         </h1>
 

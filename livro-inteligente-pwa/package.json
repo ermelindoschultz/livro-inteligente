@@ -30,6 +30,10 @@
 		"tailwindcss": "^4.1.13",
 		"vite": "^8.0.10",
 		"vite-plugin-pwa": "^1.0.3",
+		"workbox-core": "^7.3.0",
+		"workbox-precaching": "^7.3.0",
+		"workbox-routing": "^7.3.0",
+		"workbox-strategies": "^7.3.0",
 		"wrangler": "^4.90.0"
 	}
 }

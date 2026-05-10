@@ -1,5 +1,5 @@
 import { BookMarked, LibraryBig, WifiOff } from 'lucide-react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useConnectivity } from '../../hooks/useConnectivity.js'
 import ScrollToTop from './ScrollToTop.jsx'
 
@@ -23,14 +23,24 @@ function NavItem({ to, children }) {
 
 export default function Layout({ children }) {
   const { isOnline } = useConnectivity()
+  const location = useLocation()
+  const isReaderRoute = location.pathname.startsWith('/book/')
 
   return (
-    <div className="relative min-h-screen overflow-hidden px-4 pb-10 pt-5 sm:px-6 sm:pb-14 sm:pt-8">
+    <div
+      className={`relative min-h-screen overflow-hidden pb-8 pt-4 sm:pb-10 sm:pt-6 ${
+        isReaderRoute ? 'px-2 sm:px-3 lg:px-4' : 'px-4 sm:px-6'
+      }`}
+    >
       <ScrollToTop />
       <div className="pointer-events-none absolute inset-x-0 top-[-160px] h-[360px] rounded-full bg-[radial-gradient(circle,_rgba(159,111,42,0.18),_transparent_62%)] blur-3xl" />
       <div className="pointer-events-none absolute right-[-80px] top-[28%] h-56 w-56 rounded-full bg-[radial-gradient(circle,_rgba(84,120,100,0.14),_transparent_66%)] blur-3xl" />
 
-      <div className="relative mx-auto flex w-full max-w-3xl flex-col gap-5">
+      <div
+        className={`relative mx-auto flex w-full flex-col gap-4 ${
+          isReaderRoute ? 'max-w-6xl xl:max-w-[90rem]' : 'max-w-3xl'
+        }`}
+      >
         <header className="rounded-[32px] border border-[var(--color-line)] bg-[var(--color-paper)] px-5 py-5 shadow-[var(--shadow-card)] backdrop-blur-md sm:px-7 sm:py-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>

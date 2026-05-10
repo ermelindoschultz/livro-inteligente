@@ -8,6 +8,18 @@ function withTrailingSlash(value) {
   return value.endsWith('/') ? value : `${value}/`
 }
 
+function shouldSkipAssetRewrite(value) {
+  return (
+    !value ||
+    value.startsWith('#') ||
+    value.startsWith('data:') ||
+    value.startsWith('blob:') ||
+    value.startsWith('javascript:') ||
+    value.startsWith('mailto:') ||
+    value.startsWith('tel:')
+  )
+}
+
 function resolveMetadataUrl(book) {
   if (book.metadataUrl) {
     return book.metadataUrl
@@ -120,6 +132,90 @@ function resolveEntryPath(metadata) {
     metadata?.chapters?.[0]?.file_path ??
     null
   )
+}
+
+function resolveChapterUrl(book, chapter) {
+  const metadataUrl = resolveMetadataUrl(book)
+
+  if (!chapter?.file_path) {
+    throw new Error('O capitulo informado nao possui file_path no metadata.json.')
+  }
+
+  return new URL(chapter.file_path, metadataUrl).toString()
+}
+
+function absolutizeBodyAssets(documentNode, chapterUrl) {
+  const selectors = ['img[src]', 'source[src]', 'video[src]', 'audio[src]', 'track[src]', 'a[href]', 'iframe[src]']
+
+  for (const element of documentNode.body.querySelectorAll(selectors.join(','))) {
+    const attributeName = element.hasAttribute('href') ? 'href' : 'src'
+    const currentValue = element.getAttribute(attributeName)
+
+    if (shouldSkipAssetRewrite(currentValue)) {
+      continue
+    }
+
+    try {
+      element.setAttribute(attributeName, new URL(currentValue, chapterUrl).toString())
+    } catch {
+      // Ignore malformed relative asset paths and keep the original value.
+    }
+  }
+
+  for (const element of documentNode.body.querySelectorAll('[poster]')) {
+    const currentValue = element.getAttribute('poster')
+
+    if (shouldSkipAssetRewrite(currentValue)) {
+      continue
+    }
+
+    try {
+      element.setAttribute('poster', new URL(currentValue, chapterUrl).toString())
+    } catch {
+      // Ignore malformed poster paths and keep the original value.
+    }
+  }
+
+  for (const scriptElement of documentNode.body.querySelectorAll('script')) {
+    scriptElement.remove()
+  }
+}
+
+export async function getChapterContent(book, chapter) {
+  const cache = await caches.open(`book-store-${book.id}`)
+  const chapterUrl = resolveChapterUrl(book, chapter)
+  const cachedChapterResponse = await cache.match(chapterUrl)
+
+  if (!cachedChapterResponse) {
+    throw new Error('A pagina solicitada nao foi encontrada no cache local do livro.')
+  }
+
+  const html = await cachedChapterResponse.text()
+  const documentNode = new DOMParser().parseFromString(html, 'text/html')
+
+  if (!documentNode?.body) {
+    throw new Error('Nao foi possivel interpretar o HTML do capitulo offline.')
+  }
+
+  absolutizeBodyAssets(documentNode, chapterUrl)
+
+  const stylesheetUrls = [...documentNode.querySelectorAll('link[rel~="stylesheet"][href]')]
+    .map((linkElement) => linkElement.getAttribute('href'))
+    .filter(Boolean)
+    .map((href) => {
+      try {
+        return new URL(href, chapterUrl).toString()
+      } catch {
+        return null
+      }
+    })
+    .filter(Boolean)
+
+  return {
+    bodyHtml: documentNode.body.innerHTML,
+    stylesheetUrls: [...new Set(stylesheetUrls)],
+    chapterUrl,
+  }
 }
 
 export async function downloadBook(book, options = {}) {

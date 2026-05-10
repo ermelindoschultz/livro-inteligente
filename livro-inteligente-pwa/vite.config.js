@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons.svg'],
       manifest: {
@@ -37,40 +40,9 @@ export default defineConfig(({ mode }) => {
       devOptions: {
         enabled: enablePwaInDev,
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
         globIgnores: ['**/sw.js', '**/workbox-*.js'],
-        navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/assets\//, /\/[^/?]+\.[^/]+$/],
-        runtimeCaching: [
-          {
-            urlPattern: ({ request, url }) =>
-              url.origin === self.location.origin &&
-              ['document', 'script', 'style', 'worker'].includes(request.destination),
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'app-shell',
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: ({ request, url }) =>
-              ['image', 'font'].includes(request.destination) || /\.(?:html|json|md)$/i.test(url.pathname),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'book-assets-runtime',
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-              expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 30,
-              },
-            },
-          },
-        ],
       },
     }),
   ],

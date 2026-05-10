@@ -39,6 +39,7 @@ function normalizeBookRecord(book, currentBook) {
     downloadProgress: book.downloadProgress ?? currentBook?.downloadProgress ?? 0,
     fileCount: book.fileCount ?? currentBook?.fileCount ?? 0,
     cachedFileCount: book.cachedFileCount ?? currentBook?.cachedFileCount ?? 0,
+    lastReadChapterId: book.lastReadChapterId ?? currentBook?.lastReadChapterId ?? null,
     downloadedAt: book.downloadedAt ?? currentBook?.downloadedAt ?? null,
     lastOpenedAt: book.lastOpenedAt ?? currentBook?.lastOpenedAt ?? null,
     lastSyncedAt: book.lastSyncedAt ?? currentBook?.lastSyncedAt ?? timestamp,

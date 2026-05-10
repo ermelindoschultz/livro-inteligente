@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, BookOpenText, LoaderCircle, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, LoaderCircle, Menu, TriangleAlert } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import { openBook } from '../../services/bookDownload.js'
+import BookViewer from '../../components/BookViewer/index.jsx'
+import { useReader } from '../../hooks/useReader.js'
+import { getChapterContent } from '../../services/bookDownload.js'
 import { BOOKS_CHANGED_EVENT, getStoredBookById } from '../../services/db.js'
-import { formatAuthors, formatDate } from '../../utils/formatters.js'
 
 function ReaderNotFound({ reason }) {
   return (
@@ -23,10 +24,46 @@ function ReaderNotFound({ reason }) {
   )
 }
 
+function ChapterTreeItem({ item, currentChapterId, onSelect, level = 0 }) {
+  const isActive = item.id === currentChapterId
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => onSelect(item.id)}
+        className={`flex w-full items-center justify-between rounded-[18px] px-3 py-3 text-left text-sm transition ${
+          isActive
+            ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]'
+            : 'text-[var(--color-ink)] hover:bg-[rgba(47,36,25,0.05)]'
+        }`}
+        style={{ paddingLeft: `${level * 18 + 12}px` }}
+      >
+        <span className="min-w-0 truncate">{item.label}</span>
+        <span className="ml-3 shrink-0 text-[11px] uppercase tracking-[0.2em] text-[var(--color-muted)]">{item.order}</span>
+      </button>
+
+      {Array.isArray(item.children) && item.children.length > 0 ? (
+        <div className="mt-1 space-y-1">
+          {item.children.map((child) => (
+            <ChapterTreeItem
+              key={child.id}
+              item={child}
+              currentChapterId={currentChapterId}
+              onSelect={onSelect}
+              level={level + 1}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export default function ReaderPage() {
   const { id } = useParams()
   const queryClient = useQueryClient()
-  const [openState, setOpenState] = useState({ status: 'idle', error: null, mode: null })
+  const [isChapterMenuOpen, setIsChapterMenuOpen] = useState(false)
   const numericBookId = Number(id)
   const hasValidId = Number.isInteger(numericBookId) && numericBookId > 0
 
@@ -50,6 +87,30 @@ export default function ReaderPage() {
     staleTime: 5_000,
   })
 
+  const book = bookQuery.data ?? null
+  const metadata = book?.metadataSnapshot ?? null
+  const {
+    chapterTree,
+    currentChapter,
+    currentPosition,
+    goNext,
+    goPrev,
+    goToChapter,
+    hasNext,
+    hasPrevious,
+    nextChapter,
+    previousChapter,
+    progressPercent,
+    totalChapters,
+  } = useReader({ book: book ?? {}, metadata })
+
+  const chapterQuery = useQuery({
+    queryKey: ['chapter-content', book?.id ?? null, currentChapter?.id ?? null],
+    queryFn: () => getChapterContent(book, currentChapter),
+    enabled: Boolean(book && currentChapter),
+    staleTime: Infinity,
+  })
+
   if (!hasValidId) {
     return <ReaderNotFound reason="O identificador informado na rota nao e valido." />
   }
@@ -65,112 +126,124 @@ export default function ReaderPage() {
     )
   }
 
-  const book = bookQuery.data
-
   if (!book || !book.isDownloaded) {
     return (
       <ReaderNotFound reason="Este livro ainda nao foi baixado neste dispositivo, entao a rota nao consegue montar o leitor offline." />
     )
   }
 
-  const metadata = book.metadataSnapshot
-  const chapters = Array.isArray(metadata?.chapters) ? metadata.chapters.length : 0
+  const chapterError =
+    !currentChapter
+      ? 'Nenhum capitulo foi encontrado neste livro.'
+      : chapterQuery.error instanceof Error
+        ? chapterQuery.error.message
+        : null
 
-  const handleOpenBook = async () => {
-    try {
-      setOpenState({ status: 'pending', error: null, mode: null })
-      const result = await openBook(book)
-      setOpenState({ status: 'completed', error: null, mode: result.mode })
-      queryClient.invalidateQueries({ queryKey: ['stored-book', numericBookId] })
-    } catch (error) {
-      setOpenState({
-        status: 'failed',
-        error: error instanceof Error ? error.message : 'Falha ao abrir o livro.',
-        mode: null,
-      })
-    }
+  const handleChapterSelect = (chapterId) => {
+    goToChapter(chapterId)
+    setIsChapterMenuOpen(false)
+    queryClient.invalidateQueries({ queryKey: ['stored-book', numericBookId] })
   }
 
   return (
-    <section className="rounded-[32px] border border-[var(--color-line)] bg-[var(--color-paper)] px-5 py-6 shadow-[var(--shadow-card)] backdrop-blur-md sm:px-7 sm:py-8">
-      <Link
-        to="/"
-        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-[rgba(255,255,255,0.56)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)]"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para a estante
-      </Link>
+    <section className="relative flex min-h-[calc(100svh-8.5rem)] flex-col overflow-visible rounded-[28px] border border-[var(--color-line)] bg-[rgba(255,251,244,0.9)] shadow-[var(--shadow-card)] backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-[var(--color-line)] bg-[rgba(255,250,241,0.96)] px-3 py-2.5 backdrop-blur-md sm:px-5">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/80 text-[var(--color-ink)]"
+            aria-label="Voltar para a estante"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
 
-      <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-muted)]">
-            Livro {book.id}
-          </p>
-          <h1 className="font-display mt-3 text-[2.6rem] leading-[0.96] text-[var(--color-ink)] text-balance sm:text-[3.4rem]">
-            {book.title}
-          </h1>
-          <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">{formatAuthors(book.authors)}</p>
-        </div>
-
-        <div className="rounded-full border border-[rgba(35,92,59,0.18)] bg-[var(--color-success-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.26em] text-[var(--color-success)]">
-          leitura offline pronta
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-[22px] border border-[var(--color-line)] bg-[rgba(255,255,255,0.56)] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Publicacao</p>
-          <p className="mt-2 text-base font-semibold text-[var(--color-ink)]">{formatDate(book.publishedAt)}</p>
-        </div>
-        <div className="rounded-[22px] border border-[var(--color-line)] bg-[rgba(255,255,255,0.56)] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Arquivos</p>
-          <p className="mt-2 text-base font-semibold text-[var(--color-ink)]">{book.cachedFileCount || 0} de {book.fileCount || 0}</p>
-        </div>
-        <div className="rounded-[22px] border border-[var(--color-line)] bg-[rgba(255,255,255,0.56)] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Capitulos</p>
-          <p className="mt-2 text-base font-semibold text-[var(--color-ink)]">{chapters}</p>
-        </div>
-      </div>
-
-      {book.description ? (
-        <p className="mt-6 text-sm leading-7 text-[var(--color-muted)]">{book.description}</p>
-      ) : null}
-
-      {openState.error ? (
-        <div className="mt-6 rounded-[24px] border border-[rgba(138,69,48,0.18)] bg-[var(--color-danger-soft)] px-4 py-4 text-sm text-[var(--color-danger)]">
-          <div className="flex items-start gap-3">
-            <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
-            <p className="leading-6">{openState.error}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Leitura offline</p>
+            <h1 className="truncate text-lg font-semibold text-[var(--color-ink)]">{book.title}</h1>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsChapterMenuOpen((value) => !value)}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/80 text-[var(--color-ink)]"
+            aria-expanded={isChapterMenuOpen}
+            aria-label="Abrir sumario"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
         </div>
+
+        <div className="mt-2 flex items-center justify-between gap-3 text-xs text-[var(--color-muted)]">
+          <span className="truncate">{currentChapter?.title ?? 'Capitulo indisponivel'}</span>
+          <span className="shrink-0">{Math.min(currentPosition + 1, totalChapters)} / {totalChapters || 0}</span>
+        </div>
+        <div className="mt-2 h-1 overflow-hidden rounded-full bg-[rgba(47,36,25,0.08)]">
+          <div className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+        </div>
+      </header>
+
+      {isChapterMenuOpen ? (
+        <aside className="absolute inset-x-3 top-[5rem] z-30 max-h-[min(76svh,38rem)] overflow-auto rounded-[24px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.98)] p-3 shadow-[0_24px_60px_rgba(47,36,25,0.18)] sm:inset-x-auto sm:right-5 sm:w-[28rem]">
+          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Paginas do livro</p>
+          <nav className="space-y-1">
+            {chapterTree.map((item) => (
+              <ChapterTreeItem
+                key={item.id}
+                item={item}
+                currentChapterId={currentChapter?.id}
+                onSelect={handleChapterSelect}
+              />
+            ))}
+          </nav>
+        </aside>
       ) : null}
 
-      {openState.status === 'completed' ? (
-        <div className="mt-6 rounded-[24px] border border-[rgba(35,92,59,0.18)] bg-[var(--color-success-soft)] px-4 py-4 text-sm text-[var(--color-success)]">
-          <div className="flex items-start gap-3">
-            <BookOpenText className="mt-0.5 h-5 w-5 shrink-0" />
-            <p className="leading-6">
-              O conteudo foi aberto em uma nova aba no modo {openState.mode === 'offline' ? 'offline' : 'online'}.
-            </p>
+      <div className="flex-1 px-2 py-2 sm:px-3 sm:py-3">
+        {chapterError ? (
+          <div className="mb-4 rounded-[24px] border border-[rgba(138,69,48,0.18)] bg-[var(--color-danger-soft)] px-4 py-4 text-sm text-[var(--color-danger)]">
+            <div className="flex items-start gap-3">
+              <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
+              <p className="leading-6">{chapterError}</p>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      <div className="mt-6 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={handleOpenBook}
-          disabled={openState.status === 'pending'}
-          className="inline-flex items-center gap-2 rounded-full border border-transparent bg-[var(--color-ink)] px-5 py-3 text-sm font-semibold text-[#fffaf2] shadow-[0_16px_32px_rgba(47,36,25,0.18)] disabled:cursor-wait disabled:opacity-80"
-        >
-          {openState.status === 'pending' ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
-          ) : (
-            <BookOpenText className="h-4 w-4" />
-          )}
-          {openState.status === 'pending' ? 'Abrindo leitura' : 'Abrir leitura'}
-        </button>
+        <BookViewer
+          bodyHtml={chapterQuery.data?.bodyHtml ?? ''}
+          chapterTitle={currentChapter?.title ?? ''}
+          isLoading={chapterQuery.isLoading || chapterQuery.isFetching}
+          stylesheetUrls={chapterQuery.data?.stylesheetUrls ?? []}
+        />
       </div>
+
+      <footer className="sticky bottom-0 z-20 border-t border-[var(--color-line)] bg-[rgba(255,250,241,0.96)] px-3 py-2.5 backdrop-blur-md sm:px-5">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={goPrev}
+            disabled={!hasPrevious}
+            className="inline-flex min-w-0 items-center gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-left text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <ChevronLeft className="h-4 w-4 shrink-0" />
+            <span className="truncate">{previousChapter?.title ?? 'Inicio do livro'}</span>
+          </button>
+
+          <div className="text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Progresso</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">{Math.min(currentPosition + 1, totalChapters)} de {totalChapters || 0}</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!hasNext}
+            className="inline-flex min-w-0 items-center justify-end gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-right text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <span className="truncate">{nextChapter?.title ?? 'Fim do livro'}</span>
+            <ChevronRight className="h-4 w-4 shrink-0" />
+          </button>
+        </div>
+      </footer>
     </section>
   )
 }
