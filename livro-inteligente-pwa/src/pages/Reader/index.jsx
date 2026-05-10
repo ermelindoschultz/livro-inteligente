@@ -13,6 +13,7 @@ import { useGameReader } from '../../hooks/useGameReader.js'
 import { resolvePublicBookUrl } from '../../services/api.js'
 import { getChapterContent } from '../../services/bookDownload.js'
 import { BOOKS_CHANGED_EVENT, getStoredBookById } from '../../services/db.js'
+import { useGlobalDialog } from '../../hooks/useGlobalDialog.js'
 import BossFightPage from './BossFightPage.jsx'
 import ChallengeIntroPage from './ChallengeIntroPage.jsx'
 
@@ -34,19 +35,7 @@ function resolveChapterMarkdownUrl(book, chapter) {
   }
 }
 
-function buildChatGptChapterUrl({ bookTitle, chapterTitle, markdownUrl }) {
-  const prompt = [
-    'Use este capitulo em markdown como contexto.',
-    `Livro: ${bookTitle || 'Livro atual'}`,
-    `Capitulo: ${chapterTitle || 'Capitulo atual'}`,
-    `Markdown: ${markdownUrl}`,
-    'Primeiro, leia o conteúdo. Depois, me ajude com resumo, explicações e perguntas sobre este capítulo.',
-  ].join('\n')
 
-  const url = new URL('https://chatgpt.com/')
-  url.searchParams.set('q', prompt)
-  return url.toString()
-}
 
 function ReaderNotFound({ reason }) {
   return (
@@ -91,11 +80,10 @@ function ChapterTreeItem({ item, currentChapterId, onSelect, progressMap, level 
       <button
         type="button"
         onClick={() => onSelect(item.id)}
-        className={`flex w-full items-center justify-between rounded-[18px] px-3 py-3 text-left text-sm transition ${
-          isActive
+        className={`flex w-full items-center justify-between rounded-[18px] px-3 py-3 text-left text-sm transition ${isActive
             ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]'
             : 'text-[var(--color-ink)] hover:bg-[rgba(47,36,25,0.05)]'
-        }`}
+          }`}
         style={{ paddingLeft: `${level * 18 + 12}px` }}
       >
         <span className="flex min-w-0 items-center gap-2 truncate">
@@ -128,10 +116,10 @@ export default function ReaderPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const { isOnline } = useConnectivity()
+  const { openDialog } = useGlobalDialog()
   const contentStartRef = useRef(null)
   const touchStartRef = useRef(null)
   const [isChapterMenuOpen, setIsChapterMenuOpen] = useState(false)
-  const [isAiMenuOpen, setIsAiMenuOpen] = useState(false)
   const [aiFeedback, setAiFeedback] = useState(null)
   const aiFeedbackTimeoutRef = useRef(null)
   const numericBookId = Number(id)
@@ -434,19 +422,11 @@ export default function ReaderPage() {
     }, 2800)
   }
 
-  const handleOpenChapterMarkdown = () => {
-    if (!currentChapterMarkdownUrl) {
-      publishAiFeedback('Este capitulo nao possui markdown para IA.', 'error')
-      return
-    }
-
-    window.open(currentChapterMarkdownUrl, '_blank', 'noopener,noreferrer')
-    setIsAiMenuOpen(false)
-  }
-
   const handleCopyChapterForAi = async () => {
+
+
+    // Then copy in the background
     if (!currentChapterMarkdownUrl) {
-      publishAiFeedback('Este capitulo nao possui markdown para IA.', 'error')
       return
     }
 
@@ -459,29 +439,16 @@ export default function ReaderPage() {
 
       const markdown = await response.text()
       await navigator.clipboard.writeText(markdown)
-      publishAiFeedback('Capitulo copiado para a area de transferencia.', 'success')
-      setIsAiMenuOpen(false)
+
+      openDialog('ai-instructions')
+
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Nao foi possivel copiar o capitulo para IA.'
       publishAiFeedback(message, 'error')
     }
   }
 
-  const handleOpenInChatGpt = () => {
-    if (!currentChapterMarkdownUrl) {
-      publishAiFeedback('Este capitulo nao possui markdown para IA.', 'error')
-      return
-    }
 
-    const chatGptUrl = buildChatGptChapterUrl({
-      bookTitle: book?.title,
-      chapterTitle: currentChapter?.title,
-      markdownUrl: currentChapterMarkdownUrl,
-    })
-
-    window.open(chatGptUrl, '_blank', 'noopener,noreferrer')
-    setIsAiMenuOpen(false)
-  }
 
   return (
     <section className="relative flex min-h-[calc(100svh-8.5rem)] flex-col overflow-visible rounded-[28px] border border-[var(--color-line)] bg-[rgba(255,251,244,0.9)] shadow-[var(--shadow-card)] backdrop-blur-md">
@@ -502,51 +469,17 @@ export default function ReaderPage() {
 
           <div className="relative flex shrink-0 items-center gap-2">
             {showAiTools ? (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsAiMenuOpen((value) => !value)}
-                  className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-line)] bg-white/80 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]"
-                  aria-expanded={isAiMenuOpen}
-                  aria-haspopup="menu"
-                  aria-label="Abrir ferramentas de IA"
-                >
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(173,92,40,0.12)]">
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="hidden sm:inline">Use sua IA favorita</span>
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isAiMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {isAiMenuOpen ? (
-                  <div className="absolute right-0 top-[calc(100%+0.45rem)] z-30 min-w-[16rem] overflow-hidden rounded-[18px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.98)] p-1.5 shadow-[0_18px_40px_rgba(47,36,25,0.16)]">
-                    <button
-                      type="button"
-                      onClick={handleOpenInChatGpt}
-                      className="flex w-full rounded-[14px] px-3 py-2 text-left text-sm font-medium text-[var(--color-ink)] transition hover:bg-[rgba(47,36,25,0.05)]"
-                      role="menuitem"
-                    >
-                      Abrir no ChatGpt
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleOpenChapterMarkdown}
-                      className="flex w-full rounded-[14px] px-3 py-2 text-left text-sm font-medium text-[var(--color-ink)] transition hover:bg-[rgba(47,36,25,0.05)]"
-                      role="menuitem"
-                    >
-                      Ver markdown
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCopyChapterForAi}
-                      className="flex w-full rounded-[14px] px-3 py-2 text-left text-sm font-medium text-[var(--color-ink)] transition hover:bg-[rgba(47,36,25,0.05)]"
-                      role="menuitem"
-                    >
-                      Copiar capitulo para IA
-                    </button>
-                  </div>
-                ) : null}
-              </div>
+              <button
+                type="button"
+                onClick={handleCopyChapterForAi}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-line)] bg-white/80 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]"
+                aria-label="Copiar capitulo para IA"
+              >
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(173,92,40,0.12)]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                </span>
+                <span className="hidden sm:inline">Use sua IA favorita</span>
+              </button>
             ) : null}
 
             <button
@@ -567,9 +500,8 @@ export default function ReaderPage() {
 
             {aiFeedback ? (
               <p
-                className={`mt-1 truncate text-[11px] ${
-                  aiFeedback.tone === 'error' ? 'text-[var(--color-danger)]' : 'text-[#0f766e]'
-                }`}
+                className={`mt-1 truncate text-[11px] ${aiFeedback.tone === 'error' ? 'text-[var(--color-danger)]' : 'text-[#0f766e]'
+                  }`}
               >
                 {aiFeedback.message}
               </p>
@@ -659,48 +591,48 @@ export default function ReaderPage() {
 
       {!isSpecialView ? (
         <footer className="sticky bottom-0 z-20 border-t border-[var(--color-line)] bg-[rgba(255,250,241,0.96)] px-3 py-2.5 backdrop-blur-md sm:px-5">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={handleBackward}
-            disabled={effectiveView === 'boss' ? false : !hasPrevious}
-            className="inline-flex min-w-0 items-center gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-left text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <ChevronLeft className="h-4 w-4 shrink-0" />
-            <span className="truncate">
-              {effectiveView === 'boss'
-                ? 'Voltar ao capitulo'
-                : effectiveView === 'intro'
-                  ? previousChapter?.title ?? 'Inicio do livro'
-                  : currentChapter?.type === 'chapter'
-                    ? 'Introducao do desafio'
-                    : previousChapter?.title ?? 'Inicio do livro'}
-            </span>
-          </button>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={handleBackward}
+              disabled={effectiveView === 'boss' ? false : !hasPrevious}
+              className="inline-flex min-w-0 items-center gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-left text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <ChevronLeft className="h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {effectiveView === 'boss'
+                  ? 'Voltar ao capitulo'
+                  : effectiveView === 'intro'
+                    ? previousChapter?.title ?? 'Inicio do livro'
+                    : currentChapter?.type === 'chapter'
+                      ? 'Introducao do desafio'
+                      : previousChapter?.title ?? 'Inicio do livro'}
+              </span>
+            </button>
 
-          <div className="text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Progresso</p>
-            <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">{Math.min(currentPosition + 1, totalChapters)} de {totalChapters || 0}</p>
+            <div className="text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Progresso</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">{Math.min(currentPosition + 1, totalChapters)} de {totalChapters || 0}</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleForward}
+              disabled={effectiveView === 'boss' ? true : effectiveView === 'intro' ? false : isAtLastOfGroup ? false : !hasNext}
+              className="inline-flex min-w-0 items-center justify-end gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-right text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <span className="truncate">
+                {effectiveView === 'intro'
+                  ? 'Comecar leitura'
+                  : isAtLastOfGroup
+                    ? 'Desafio final'
+                    : nextChapter?.type === 'chapter'
+                      ? 'Introducao do desafio'
+                      : nextChapter?.title ?? 'Fim do livro'}
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0" />
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={handleForward}
-            disabled={effectiveView === 'boss' ? true : effectiveView === 'intro' ? false : isAtLastOfGroup ? false : !hasNext}
-            className="inline-flex min-w-0 items-center justify-end gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-right text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <span className="truncate">
-              {effectiveView === 'intro'
-                ? 'Comecar leitura'
-                : isAtLastOfGroup
-                  ? 'Desafio final'
-                  : nextChapter?.type === 'chapter'
-                    ? 'Introducao do desafio'
-                    : nextChapter?.title ?? 'Fim do livro'}
-            </span>
-            <ChevronRight className="h-4 w-4 shrink-0" />
-          </button>
-        </div>
         </footer>
       ) : null}
     </section>

@@ -6,6 +6,7 @@ import './index.css'
 import App from './App.jsx'
 import { ConnectionStatusModalProvider } from './context/ConnectionStatusModalContext.jsx'
 import { WidgetModalProvider } from './context/WidgetModalContext.jsx'
+import { GlobalDialogProvider } from './context/GlobalDialogContext.jsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,9 +24,11 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ConnectionStatusModalProvider>
-        <WidgetModalProvider>
-          <App />
-        </WidgetModalProvider>
+        <GlobalDialogProvider>
+          <WidgetModalProvider>
+            <App />
+          </WidgetModalProvider>
+        </GlobalDialogProvider>
       </ConnectionStatusModalProvider>
     </QueryClientProvider>
   </StrictMode>,
