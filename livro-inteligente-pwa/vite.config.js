@@ -19,8 +19,8 @@ export default defineConfig(({ mode }) => {
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons.svg'],
       manifest: {
-        name: 'Livro Inteligente',
-        short_name: 'Livro',
+        name: 'Desafio da Leitura Inteligente',
+        short_name: 'Desafio',
         description: 'Plataforma educacional mobile-first com leitura e downloads offline.',
         theme_color: '#e7dac4',
         background_color: '#f6efe4',

@@ -81,14 +81,14 @@ export default function LibraryPage() {
         </div>
 
         <h1 className="font-display mt-5 text-xl leading-[0.98] text-[var(--color-ink)] text-balance sm:text-4xl">
-          Leia com calma, mesmo quando a internet nao ajudar.
+          Uma estante de livros cheia de desafios.
         </h1>
 
         <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--color-muted)] sm:text-base">
-          Guarde seus livros favoritos no aparelho e continue estudando no seu ritmo, online ou offline.
+          Guarde seus desafios no aparelho e continue superando provas e missões mesmo quando a internet falhar. Seu progresso sempre com você.
         </p>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-[22px] border border-[var(--color-line)] bg-[rgba(255,255,255,0.56)] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Biblioteca</p>
             <p className="mt-2 text-2xl font-semibold text-[var(--color-ink)]">{books.length}</p>
@@ -96,10 +96,6 @@ export default function LibraryPage() {
           <div className="rounded-[22px] border border-[var(--color-line)] bg-[rgba(255,255,255,0.56)] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Guardados</p>
             <p className="mt-2 text-2xl font-semibold text-[var(--color-ink)]">{downloadedCount}</p>
-          </div>
-          <div className="rounded-[22px] border border-[var(--color-line)] bg-[rgba(255,255,255,0.56)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Momento</p>
-            <p className="mt-2 text-base font-semibold text-[var(--color-ink)]">{isOnline ? 'conectado' : 'sem rede'}</p>
           </div>
         </div>
       </section>

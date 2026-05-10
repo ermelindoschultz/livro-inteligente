@@ -48,10 +48,6 @@ export default function BookCard({ book, openingBookId, uiState, onDownload, onO
         </span>
       </div>
 
-      {book.description ? (
-        <p className="mt-4 text-sm leading-6 text-[var(--color-ink)]/80">{book.description}</p>
-      ) : null}
-
       {actionState.status === 'pending' ? <ProgressBar value={actionState.progress} /> : null}
 
       {actionState.error ? (

@@ -1,6 +1,7 @@
 import { BookMarked, LibraryBig, WifiOff } from 'lucide-react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useConnectivity } from '../../hooks/useConnectivity.js'
+import ConnectionStatus from '../ConnectionStatus.jsx'
 import ScrollToTop from './ScrollToTop.jsx'
 
 function NavItem({ to, children }) {
@@ -41,22 +42,18 @@ export default function Layout({ children }) {
           isReaderRoute ? 'max-w-6xl xl:max-w-[90rem]' : 'max-w-3xl'
         }`}
       >
-        <header className="rounded-[32px] border border-[var(--color-line)] bg-[var(--color-paper)] px-5 py-5 shadow-[var(--shadow-card)] backdrop-blur-md sm:px-7 sm:py-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <Link
-                to="/"
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-[rgba(255,255,255,0.48)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-muted)]"
-              >
-                <BookMarked className="h-3.5 w-3.5" />
-                Livro Inteligente
-              </Link>
-              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-                Navegacao offline com app shell e leitura a partir da biblioteca local.
-              </p>
-            </div>
+        <header className="rounded-[32px] border border-[var(--color-line)] bg-[var(--color-paper)] px-4 py-2 shadow-[var(--shadow-card)] backdrop-blur-md sm:px-7">
+          <div className="flex flex-row items-center justify-between gap-3">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-[rgba(255,255,255,0.48)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-muted)] shrink-0"
+            >
+              <BookMarked className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline whitespace-nowrap">Desafio da Leitura Inteligente</span>
+            </Link>
 
-            <nav className="flex flex-wrap gap-2">
+            <nav className="flex items-center gap-2 shrink-0">
+              <ConnectionStatus />
               <NavItem to="/">
                 <LibraryBig className="h-4 w-4" />
                 Estante

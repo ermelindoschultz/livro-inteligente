@@ -100,7 +100,7 @@ export default function BossFightPage({
   if (totalQuestions === 0) {
     return (
       <section className="space-y-4 rounded-[24px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.9)] p-5 shadow-[0_20px_50px_rgba(47,36,25,0.08)] sm:p-6">
-        <RetroDialog tone="warning" message="Esta batalha ainda nao recebeu perguntas finais. Gere o livro inteligente novamente para liberar o chefe deste capitulo." />
+        <RetroDialog tone="warning" message="Esta batalha ainda nao recebeu perguntas finais. Gere o desafio novamente para liberar o chefe deste capitulo." />
         <button
           type="button"
           onClick={onRetreat}

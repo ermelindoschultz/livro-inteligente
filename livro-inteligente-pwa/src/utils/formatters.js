@@ -1,6 +1,6 @@
 export function formatAuthors(authors) {
   if (!Array.isArray(authors) || authors.length === 0) {
-    return 'Equipe Livro Inteligente'
+    return 'Equipe Desafio da Leitura Inteligente'
   }
 
   return authors.join(' • ')
