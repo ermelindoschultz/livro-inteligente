@@ -205,7 +205,12 @@ export function buildMetadata(bookSlug, descriptors) {
 		navigation_tree: navigationTree,
 		pipeline: {
 			current_step: 'extractBookStructureStep',
-			steps: ['extractBookStructureStep', 'persistBookMetadataStep'],
+			steps: [
+				'extractBookStructureStep',
+				'enrichMetadataStep',
+				'persistBookMetadataStep',
+				'generateManifestStep',
+			],
 		},
 	};
 }

@@ -1,5 +1,6 @@
 import { extractBookStructureStep } from './steps/extract-book-structure-step.js';
 import { enrichMetadataStep } from './steps/enrich-metadata-step.js';
+import { generateManifestStep } from './steps/generate-manifest-step.js';
 import { persistBookMetadataStep } from './steps/persist-book-metadata-step.js';
 
 const BOOK_STATUS = {
@@ -37,6 +38,9 @@ export async function processBookIngestion(bookSlug, services) {
 
         // Last Step: Persist extracted metadata
 		await persistBookMetadataStep(context, services);
+
+		// Generate download manifest with all generated files and source assets.
+		await generateManifestStep(context, services);
 
         // Mark ingestion as successful
 		await bookMetadataStore.updateInjectedBookStatus(context.injectedBookId, BOOK_STATUS.SUCCESS);

@@ -62,6 +62,15 @@ async function saveMetadataSnapshot(context, dest) {
 	await dest.writeFile(`${context.bookSlug}/metadata.json`, JSON.stringify(context.metadata, null, 2));
 }
 
+async function copyBookAssets(context, source, dest) {
+	const assetPaths = (await source.listAssetFiles?.(context.bookSlug)) ?? [];
+
+	for (const assetPath of assetPaths) {
+		const asset = await source.readAsset(context.bookSlug, assetPath);
+		await dest.writeAsset(`${context.bookSlug}/${assetPath}`, asset.body, asset.contentType);
+	}
+}
+
 export async function extractBookStructureStep(context, services) {
 	const { dest, source } = services;
 
@@ -74,6 +83,8 @@ export async function extractBookStructureStep(context, services) {
 	context.metadata = buildMetadata(context.bookSlug, descriptors);
 	context.metadata.pipeline.current_step = 'extractBookStructureStep';
 	context.chapterSummaries = [];
+
+	await copyBookAssets(context, source, dest);
 
 	for (const chapter of context.metadata.chapters) {
 		const html = await source.readHtml(context.bookSlug, chapter.file_path);

@@ -25,6 +25,10 @@ function isHtmlBookFile(key, bookSlug) {
 	return relativePath.length > 0 && !relativePath.startsWith('assets/');
 }
 
+function hasHiddenSegment(relativePath) {
+	return relativePath.split('/').some((segment) => segment.startsWith('.'));
+}
+
 export function createR2Source(bucket) {
 	return {
 		mode: 'r2',
@@ -59,6 +63,49 @@ export function createR2Source(bucket) {
 			}
 
 			return object.text();
+		},
+
+		async readAsset(bookSlug, filePath) {
+			const object = await bucket.get(`${bookSlug}/${filePath}`);
+
+			if (!object) {
+				throw new Error(`Source asset not found: ${bookSlug}/${filePath}`);
+			}
+
+			return {
+				body: await object.arrayBuffer(),
+				contentType: object.httpMetadata?.contentType ?? null,
+			};
+		},
+
+		async listAssetFiles(bookSlug) {
+			const filePaths = [];
+			let cursor;
+
+			do {
+				const result = await bucket.list({
+					cursor,
+					prefix: `${bookSlug}/assets/`,
+				});
+
+				for (const object of result.objects ?? []) {
+					if (!object.key) {
+						continue;
+					}
+
+					const relativePath = object.key.slice(bookSlug.length + 1);
+
+					if (!relativePath || relativePath.endsWith('/') || hasHiddenSegment(relativePath)) {
+						continue;
+					}
+
+					filePaths.push(relativePath);
+				}
+
+				cursor = result.truncated ? result.cursor : undefined;
+			} while (cursor);
+
+			return filePaths.sort(compareKeys);
 		},
 	};
 }

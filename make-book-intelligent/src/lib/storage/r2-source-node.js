@@ -14,6 +14,10 @@ function isHtmlBookFile(key, bookSlug) {
 	return relativePath.length > 0 && !relativePath.startsWith('assets/');
 }
 
+function hasHiddenSegment(relativePath) {
+	return relativePath.split('/').some((segment) => segment.startsWith('.'));
+}
+
 export function createR2SourceNode(config) {
 	const client = createR2NodeClient(config);
 	const bucketName = config.bucketName;
@@ -59,6 +63,53 @@ export function createR2SourceNode(config) {
 			);
 
 			return result.Body.transformToString();
+		},
+
+		async readAsset(bookSlug, filePath) {
+			const result = await client.send(
+				new GetObjectCommand({
+					Bucket: bucketName,
+					Key: `${bookSlug}/${filePath}`,
+				})
+			);
+
+			return {
+				body: await result.Body.transformToByteArray(),
+				contentType: result.ContentType ?? null,
+			};
+		},
+
+		async listAssetFiles(bookSlug) {
+			const filePaths = [];
+			let continuationToken;
+
+			do {
+				const result = await client.send(
+					new ListObjectsV2Command({
+						Bucket: bucketName,
+						ContinuationToken: continuationToken,
+						Prefix: `${bookSlug}/assets/`,
+					})
+				);
+
+				for (const object of result.Contents ?? []) {
+					if (!object.Key) {
+						continue;
+					}
+
+					const relativePath = object.Key.slice(bookSlug.length + 1);
+
+					if (!relativePath || relativePath.endsWith('/') || hasHiddenSegment(relativePath)) {
+						continue;
+					}
+
+					filePaths.push(relativePath);
+				}
+
+				continuationToken = result.IsTruncated ? result.NextContinuationToken : undefined;
+			} while (continuationToken);
+
+			return filePaths.sort(compareKeys);
 		},
 	};
 }

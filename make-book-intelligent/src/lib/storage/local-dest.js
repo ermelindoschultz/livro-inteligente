@@ -13,6 +13,12 @@ export function createLocalDest(outDir) {
 			await writeFile(filePath, content, 'utf8');
 		},
 
+		async writeAsset(relativePath, content) {
+			const filePath = path.join(baseDir, relativePath);
+			await mkdir(path.dirname(filePath), { recursive: true });
+			await writeFile(filePath, Buffer.from(content));
+		},
+
 		async readFile(relativePath) {
 			const filePath = path.join(baseDir, relativePath);
 			return readFile(filePath, 'utf8');
