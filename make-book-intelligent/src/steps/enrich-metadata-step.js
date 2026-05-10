@@ -7,6 +7,17 @@ async function saveMetadataSnapshot(context, dest) {
 	await dest.writeFile(`${context.bookSlug}/metadata.json`, JSON.stringify(context.metadata, null, 2));
 }
 
+const VARIATION_COUNT = 50;
+
+function shuffleArray(arr) {
+	const copy = [...arr];
+	for (let i = copy.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[copy[i], copy[j]] = [copy[j], copy[i]];
+	}
+	return copy;
+}
+
 export async function enrichMetadataStep(context, services) {
 	const { ai, dest } = services;
 	context.metadata.pipeline.current_step = 'enrichMetadataStep';
@@ -19,6 +30,17 @@ export async function enrichMetadataStep(context, services) {
 		.sort((left, right) => left.position - right.position);
 
 	if (mainChapters.length === 0) return;
+
+	// Assign a unique variation id to each main chapter for this run.
+	// Pool is reshuffled on every generation as requested.
+	const baseIds = Array.from({ length: VARIATION_COUNT }, (_, i) => `boss_variation_${i + 1}`);
+	const variationPool = shuffleArray(baseIds);
+	const variationByChapterId = Object.fromEntries(
+		mainChapters.map((chapter, index) => [chapter.id, variationPool[index % VARIATION_COUNT]]),
+	);
+	if (mainChapters.length > VARIATION_COUNT) {
+		console.warn(`[enrich-metadata] Book has ${mainChapters.length} main chapters but only ${VARIATION_COUNT} variations; ids will repeat after the first ${VARIATION_COUNT}.`);
+	}
 
 	// Helper: collect ordered pages for a chapter (chapter entry + child sections).
 	function pagesOf(mainChapter) {
@@ -79,6 +101,7 @@ export async function enrichMetadataStep(context, services) {
 		const allContent = Object.values(markdownByPageId).join('\n\n---\n\n');
 
 		mainChapter.boss = await generateBossMetadata(allContent, ai);
+		mainChapter.boss.variationId = variationByChapterId[mainChapter.id];
 
 		const bossQuestions = await generateBossTrivia(allContent, ai);
 		for (const content of bossQuestions.slice(0, 5)) {

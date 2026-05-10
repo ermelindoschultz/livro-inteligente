@@ -87,7 +87,7 @@ export default function ChallengeIntroPage({ challenge, challengePages, bossMeta
         <div className="rounded-[24px] border border-[var(--color-line)] bg-[rgba(32,21,13,0.92)] p-5 text-white shadow-[0_18px_45px_rgba(47,36,25,0.2)]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgba(255,245,232,0.7)]">Chefe do capitulo</p>
           <div className="mt-4 flex justify-center">
-            <BossAvatar size={176} />
+            <BossAvatar size={176} variationId={bossMeta?.variationId} />
           </div>
           <h3 className="mt-4 text-xl font-semibold">{bossMeta?.name}</h3>
           <p className="mt-1 text-sm uppercase tracking-[0.18em] text-[rgba(255,245,232,0.72)]">{bossMeta?.title}</p>

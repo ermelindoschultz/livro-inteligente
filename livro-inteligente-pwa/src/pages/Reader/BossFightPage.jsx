@@ -119,7 +119,7 @@ export default function BossFightPage({
         <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-center">
           <div className="rounded-[24px] border border-[var(--color-line)] bg-[rgba(32,21,13,0.92)] p-5 text-white">
             <div className="flex justify-center">
-              <BossAvatar size={176} defeated />
+              <BossAvatar size={176} defeated variationId={bossMeta?.variationId} />
             </div>
           </div>
 
@@ -150,7 +150,7 @@ export default function BossFightPage({
       <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
         <div className="rounded-[24px] border border-[var(--color-line)] bg-[rgba(32,21,13,0.92)] p-5 text-white shadow-[0_18px_45px_rgba(47,36,25,0.2)]">
           <div className="flex justify-center">
-            <BossAvatar size={176} defeated={remainingBossHp === 0} />
+            <BossAvatar size={176} defeated={remainingBossHp === 0} variationId={bossMeta?.variationId} />
           </div>
           <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[rgba(255,245,232,0.7)]">Batalha do desafio</p>
           <h2 className="mt-2 text-2xl font-semibold">{bossMeta?.name}</h2>
