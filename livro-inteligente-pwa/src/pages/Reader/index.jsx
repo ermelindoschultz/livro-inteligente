@@ -643,7 +643,7 @@ export default function ReaderPage() {
               bodyHtml={chapterQuery.data?.bodyHtml ?? ''}
               chapterTitle={currentChapter?.title ?? ''}
               isLoading={chapterQuery.isLoading || chapterQuery.isFetching}
-              stylesheetUrls={chapterQuery.data?.stylesheetUrls ?? []}
+              stylesheets={chapterQuery.data?.stylesheets ?? []}
             />
 
             <EnrichmentWidget

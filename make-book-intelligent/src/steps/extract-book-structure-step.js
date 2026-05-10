@@ -21,6 +21,37 @@ function updateNavigationTitles(nodes, chapterMap) {
 	}
 }
 
+function extractExternalStylesheetUrls(html) {
+	const urls = [];
+	const pattern = /<link[^>]+rel=["'][^"']*stylesheet[^"']*["'][^>]*>/gi;
+	const hrefPattern = /href=["']([^"']+)["']/i;
+
+	for (const match of html.matchAll(pattern)) {
+		const hrefMatch = match[0].match(hrefPattern);
+		if (!hrefMatch) continue;
+		const href = hrefMatch[1];
+		if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+			urls.push(href.startsWith('//') ? `https:${href}` : href);
+		}
+	}
+
+	return urls;
+}
+
+function extractExternalScriptUrls(html) {
+	const urls = [];
+	const pattern = /<script[^>]+src=["']([^"']+)["'][^>]*>/gi;
+
+	for (const match of html.matchAll(pattern)) {
+		const src = match[1];
+		if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//')) {
+			urls.push(src.startsWith('//') ? `https:${src}` : src);
+		}
+	}
+
+	return urls;
+}
+
 function extractDocumentTitle(html) {
 	const match = html.match(/<title>([\s\S]*?)<\/title>/i);
 	return match ? match[1].replace(/\s+/g, ' ').trim() : null;
@@ -83,6 +114,7 @@ export async function extractBookStructureStep(context, services) {
 	context.metadata = buildMetadata(context.bookSlug, descriptors);
 	context.metadata.pipeline.current_step = 'extractBookStructureStep';
 	context.chapterSummaries = [];
+	context.externalUrls = new Set();
 
 	await copyBookAssets(context, source, dest);
 
@@ -90,6 +122,9 @@ export async function extractBookStructureStep(context, services) {
 		const html = await source.readHtml(context.bookSlug, chapter.file_path);
 		const { markdown, title, videos } = await convertHtmlToMarkdown(html);
 		const documentTitle = extractDocumentTitle(html);
+
+		for (const url of extractExternalStylesheetUrls(html)) context.externalUrls.add(url);
+		for (const url of extractExternalScriptUrls(html)) context.externalUrls.add(url);
 
 		await dest.writeFile(`${context.bookSlug}/${chapter.file_path}`, html);
 

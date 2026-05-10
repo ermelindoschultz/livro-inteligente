@@ -31,10 +31,6 @@ const BASE_READER_STYLES = `
     padding-inline: 0;
   }
 
-  .book-reader-root .content {
-    max-width: min(78ch, 100%);
-  }
-
   .book-reader-root p,
   .book-reader-root li {
     line-height: 1.8;
@@ -60,7 +56,7 @@ const BASE_READER_STYLES = `
   }
 `
 
-export default function BookViewer({ bodyHtml, chapterTitle, isLoading, stylesheetUrls }) {
+export default function BookViewer({ bodyHtml, chapterTitle, isLoading, stylesheets }) {
   const hostRef = useRef(null)
 
   useEffect(() => {
@@ -75,11 +71,22 @@ export default function BookViewer({ bodyHtml, chapterTitle, isLoading, styleshe
     baseStyle.textContent = BASE_READER_STYLES
     shadowRoot.appendChild(baseStyle)
 
-    for (const stylesheetUrl of stylesheetUrls) {
-      const linkElement = document.createElement('link')
-      linkElement.rel = 'stylesheet'
-      linkElement.href = stylesheetUrl
-      shadowRoot.appendChild(linkElement)
+    for (const { url, content } of stylesheets) {
+      if (content !== null) {
+        // Inject pre-fetched CSS as an inline <style> so it applies synchronously and
+        // works offline without depending on the service worker to intercept the request.
+        // `:root` selectors are rewritten to `:host` so CSS custom properties (variables)
+        // are defined on the shadow host and inherited by all elements in the shadow tree.
+        const styleEl = document.createElement('style')
+        styleEl.textContent = content.replace(/:root(?=\s*[{,])/g, ':host')
+        shadowRoot.appendChild(styleEl)
+      } else {
+        // Fall back to <link> for external URLs (e.g. Google Fonts) not in the book cache.
+        const linkEl = document.createElement('link')
+        linkEl.rel = 'stylesheet'
+        linkEl.href = url
+        shadowRoot.appendChild(linkEl)
+      }
     }
 
     const contentWrapper = document.createElement('div')
@@ -88,7 +95,7 @@ export default function BookViewer({ bodyHtml, chapterTitle, isLoading, styleshe
     shadowRoot.appendChild(contentWrapper)
 
     hostRef.current.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [bodyHtml, stylesheetUrls])
+  }, [bodyHtml, stylesheets])
 
   return (
     <div className="relative h-full min-h-[68svh] overflow-hidden rounded-[24px] border border-[rgba(106,80,45,0.12)] bg-[rgba(255,255,255,0.72)] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] sm:min-h-[72svh]">

@@ -3,11 +3,15 @@ function compareManifestEntries(left, right) {
 }
 
 function buildManifestEntries(context, assetPaths) {
+	const externalUrls = [...(context.externalUrls ?? [])]
+		.filter((url) => url.endsWith('.css'));
+
 	const entries = [
 		'manifest.json',
 		'metadata.json',
 		...context.metadata.chapters.map((chapter) => chapter.file_path),
 		...assetPaths,
+		...externalUrls,
 	];
 
 	return [...new Set(entries)].sort(compareManifestEntries);

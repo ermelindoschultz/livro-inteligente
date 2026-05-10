@@ -1,4 +1,4 @@
-import { ensureBookRecord, updateBookRecord } from './db.js'
+import { ensureBookRecord, removeBook as removeBookFromDb, updateBookRecord } from './db.js'
 import { resolvePublicBookUrl } from './api.js'
 
 const DOWNLOAD_CONCURRENCY = 6
@@ -223,6 +223,29 @@ function resolveChapterUrl(book, chapter) {
   return new URL(chapter.file_path, metadataUrl).toString()
 }
 
+const FONT_AWESOME_KIT_PATTERN = /kit\.fontawesome\.com/
+const FONT_AWESOME_CACHE_PATTERN = /font-?awesome/i
+
+async function extractExtraStylesheetUrls(documentNode, cache) {
+  const extra = []
+
+  const hasFontAwesomeKit = [...documentNode.body.querySelectorAll('script[src]')].some(
+    (scriptElement) => FONT_AWESOME_KIT_PATTERN.test(scriptElement.getAttribute('src') ?? ''),
+  )
+
+  if (hasFontAwesomeKit) {
+    // Find the Font Awesome CSS that was downloaded as part of the book manifest,
+    // identified by URL pattern rather than a hardcoded URL in the PWA.
+    const cachedRequests = await cache.keys()
+    const faCssRequest = cachedRequests.find((req) => FONT_AWESOME_CACHE_PATTERN.test(req.url))
+    if (faCssRequest) {
+      extra.push(faCssRequest.url)
+    }
+  }
+
+  return extra
+}
+
 function absolutizeBodyAssets(documentNode, chapterUrl) {
   const selectors = ['img[src]', 'source[src]', 'video[src]', 'audio[src]', 'track[src]', 'a[href]', 'iframe[src]']
 
@@ -276,9 +299,11 @@ export async function getChapterContent(book, chapter) {
     throw new Error('Nao foi possivel interpretar o HTML do capitulo offline.')
   }
 
+  const extraStylesheetUrls = await extractExtraStylesheetUrls(documentNode, cache)
+
   absolutizeBodyAssets(documentNode, chapterUrl)
 
-  const stylesheetUrls = [...documentNode.querySelectorAll('link[rel~="stylesheet"][href]')]
+  const rawStylesheetUrls = [...documentNode.querySelectorAll('link[rel~="stylesheet"][href]')]
     .map((linkElement) => linkElement.getAttribute('href'))
     .filter(Boolean)
     .map((href) => {
@@ -290,9 +315,26 @@ export async function getChapterContent(book, chapter) {
     })
     .filter(Boolean)
 
+  const uniqueStylesheetUrls = [...new Set([...rawStylesheetUrls, ...extraStylesheetUrls])]
+
+  const stylesheets = await Promise.all(
+    uniqueStylesheetUrls.map(async (url) => {
+      try {
+        const response = await cache.match(url)
+        if (response) {
+          const content = await response.text()
+          return { url, content }
+        }
+      } catch {
+        // ignore cache errors for individual stylesheets
+      }
+      return { url, content: null }
+    }),
+  )
+
   return {
     bodyHtml: documentNode.body.innerHTML,
-    stylesheetUrls: [...new Set(stylesheetUrls)],
+    stylesheets,
     chapterUrl,
   }
 }
@@ -442,16 +484,13 @@ export async function openBook(book) {
 }
 
 export async function removeBook(book) {
-  // Delete the cache storage for this book
   const cacheDeleted = await caches.delete(`book-store-${book.id}`)
 
   if (!cacheDeleted) {
     console.warn(`Cache para livro ${book.id} não encontrado, continuando com limpeza do banco.`)
   }
 
-  // Reset the database record (keeps metadata but removes download state)
-  const { removeBook: removeFromDb } = await import('./db.js')
-  await removeFromDb(book.id)
+  await removeBookFromDb(book.id)
 
   return { cacheDeleted }
 }

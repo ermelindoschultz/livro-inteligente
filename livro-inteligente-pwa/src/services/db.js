@@ -219,29 +219,8 @@ export async function deleteGameProgress(bookId) {
 }
 
 export async function removeBook(bookId) {
-  const currentBook = await libraryDb.books.get(bookId)
-
-  if (!currentBook) {
-    throw new Error(`Livro ${bookId} não está persistido localmente.`)
-  }
-
-  // Reset download state but keep the book in the database for metadata
-  const record = normalizeBookRecord(
-    {
-      ...currentBook,
-      isDownloaded: false,
-      downloadStatus: 'idle',
-      downloadProgress: 0,
-      downloadedAt: null,
-    },
-    currentBook,
-  )
-  await libraryDb.books.put(record)
-
-  // Clear reading progress
+  await libraryDb.books.delete(bookId)
   await deleteReadingProgress(bookId)
   await deleteGameProgress(bookId)
-
   emitBooksChanged()
-  return record
 }
