@@ -176,6 +176,24 @@ async function cacheRemoteAsset(cache, url) {
   await cache.put(url, response.clone())
 }
 
+async function replaceCacheContents(targetCacheName, sourceCacheName) {
+  const sourceCache = await caches.open(sourceCacheName)
+  const sourceRequests = await sourceCache.keys()
+
+  await caches.delete(targetCacheName)
+  const targetCache = await caches.open(targetCacheName)
+
+  await Promise.all(
+    sourceRequests.map(async (request) => {
+      const response = await sourceCache.match(request)
+
+      if (response) {
+        await targetCache.put(request, response)
+      }
+    }),
+  )
+}
+
 async function runWithConcurrency(items, limit, worker) {
   let nextIndex = 0
 
@@ -201,16 +219,6 @@ function notifyProgress(onProgress, completed, total) {
     total,
     percent: total === 0 ? 100 : Math.round((completed / total) * 100),
   })
-}
-
-function resolveEntryPath(metadata) {
-  return (
-    metadata?.entry ??
-    metadata?.startPage ??
-    metadata?.homepage ??
-    metadata?.chapters?.[0]?.file_path ??
-    null
-  )
 }
 
 function resolveChapterUrl(book, chapter) {
@@ -342,6 +350,7 @@ export async function getChapterContent(book, chapter) {
 export async function downloadBook(book, options = {}) {
   const { onProgress } = options
   const cacheName = `book-store-${book.id}`
+  const tempCacheName = `${cacheName}-dl`
   const metadataUrl = resolveMetadataUrl(book)
   const manifestUrl = resolveManifestUrl(book)
   let completed = 0
@@ -355,8 +364,8 @@ export async function downloadBook(book, options = {}) {
   })
 
   try {
-    await caches.delete(cacheName)
-    const cache = await caches.open(cacheName)
+    await caches.delete(tempCacheName)
+    const cache = await caches.open(tempCacheName)
     const metadataResponse = await fetchJson(metadataUrl, `Falha ao carregar metadata.json do livro ${book.id}.`)
 
     await cache.put(metadataUrl, metadataResponse.clone())
@@ -410,6 +419,9 @@ export async function downloadBook(book, options = {}) {
       notifyProgress(onProgress, completed, totalFiles)
     })
 
+    await replaceCacheContents(cacheName, tempCacheName)
+    await caches.delete(tempCacheName)
+
     await updateBookRecord(book.id, {
       downloadStatus: 'completed',
       downloadProgress: 100,
@@ -428,7 +440,7 @@ export async function downloadBook(book, options = {}) {
       totalFiles,
     }
   } catch (error) {
-    await caches.delete(cacheName)
+    await caches.delete(tempCacheName)
     await updateBookRecord(book.id, {
       downloadStatus: 'failed',
       downloadProgress: 0,
@@ -438,49 +450,6 @@ export async function downloadBook(book, options = {}) {
     })
     throw error
   }
-}
-
-export async function openBook(book) {
-  const publicBookUrl = resolvePublicBookUrl(book)
-
-  if (typeof window !== 'undefined' && navigator.onLine && publicBookUrl) {
-    window.open(publicBookUrl, '_blank', 'noopener,noreferrer')
-    await updateBookRecord(book.id, { lastOpenedAt: new Date().toISOString() })
-    return { mode: 'remote' }
-  }
-
-  const cache = await caches.open(`book-store-${book.id}`)
-  const metadataUrl = resolveMetadataUrl(book)
-  const cachedMetadataResponse = book.metadataSnapshot ? null : await cache.match(metadataUrl)
-
-  const metadata =
-    book.metadataSnapshot ??
-    (cachedMetadataResponse ? await cachedMetadataResponse.json() : null)
-
-  if (!metadata) {
-    throw new Error('Os metadados offline deste livro ainda não estão disponíveis.')
-  }
-
-  const entryPath = resolveEntryPath(metadata)
-
-  if (!entryPath) {
-    throw new Error('O metadata.json não informa uma página inicial para abertura offline.')
-  }
-
-  const entryUrl = new URL(entryPath, metadataUrl).toString()
-  const cachedEntryResponse = await cache.match(entryUrl)
-
-  if (!cachedEntryResponse) {
-    throw new Error('A página inicial não foi encontrada no cache local do livro.')
-  }
-
-  const entryBlob = await cachedEntryResponse.blob()
-  const objectUrl = URL.createObjectURL(entryBlob)
-  window.open(objectUrl, '_blank', 'noopener,noreferrer')
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
-  await updateBookRecord(book.id, { lastOpenedAt: new Date().toISOString() })
-
-  return { mode: 'offline' }
 }
 
 export async function removeBook(book) {

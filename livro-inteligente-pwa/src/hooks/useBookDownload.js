@@ -26,7 +26,7 @@ function sortBooks(left, right) {
 export function useBookDownload() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { isOnline } = useConnectivity()
+  const { isOnline, probeReady } = useConnectivity()
   const [downloadStates, setDownloadStates] = useState({})
   const deleteDialog = useConfirmDialog()
 
@@ -44,20 +44,20 @@ export function useBookDownload() {
   const storedBooksQuery = useQuery({
     queryKey: ['stored-books'],
     queryFn: listStoredBooks,
-    initialData: [],
+    placeholderData: [],
     staleTime: 5_000,
   })
 
   const syncBooksQuery = useQuery({
     queryKey: ['books-sync', apiBaseUrl],
     queryFn: async () => {
-      const { books, source } = await fetchBooksWithOfflineSupport(true)
+      const { books, source } = await fetchBooksWithOfflineSupport()
       if (source === 'api') {
         await syncRemoteBooks(books)
       }
       return { books, source }
     },
-    enabled: isOnline,
+    enabled: probeReady && isOnline,
     retry: 1,
   })
 
@@ -193,6 +193,7 @@ export function useBookDownload() {
   }
 
   const showSkeleton =
+    (!probeReady && books.length === 0) ||
     storedBooksQuery.isLoading ||
     (storedBooksQuery.isFetching && books.length === 0) ||
     (isOnline && syncBooksQuery.isLoading && books.length === 0)

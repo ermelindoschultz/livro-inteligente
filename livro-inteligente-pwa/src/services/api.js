@@ -78,25 +78,18 @@ export async function fetchBooks() {
   return books.map(normalizeBook)
 }
 
-export async function fetchBooksWithOfflineSupport(isOnline) {
-  if (isOnline) {
-    try {
-      const books = await fetchBooks()
-      return { books, source: 'api' }
-    } catch (error) {
-      // If we're online but the API fails, try the cache as fallback
-      const { listCachedBooks } = await import('./db.js')
-      const cachedBooks = await listCachedBooks()
-      if (cachedBooks.length > 0) {
-        console.warn('API failed, falling back to cache:', error)
-        return { books: cachedBooks, source: 'cache' }
-      }
-      throw error
-    }
-  } else {
-    // Offline: fetch from cache only
+export async function fetchBooksWithOfflineSupport() {
+  try {
+    const books = await fetchBooks()
+    return { books, source: 'api' }
+  } catch (error) {
     const { listCachedBooks } = await import('./db.js')
     const cachedBooks = await listCachedBooks()
-    return { books: cachedBooks, source: 'cache' }
+    if (cachedBooks.length > 0) {
+      console.warn('API failed, falling back to cache:', error)
+      return { books: cachedBooks, source: 'cache' }
+    }
+
+    throw error
   }
 }

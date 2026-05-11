@@ -4,6 +4,18 @@ import { apiBaseUrl } from '../services/api.js'
 const PROBE_TIMEOUT_MS = 5_000
 const PROBE_INTERVAL_MS = 30_000
 
+function getProbeUrl() {
+  if (apiBaseUrl) {
+    return `${apiBaseUrl}/`
+  }
+
+  if (typeof window !== 'undefined') {
+    return new URL('/favicon.svg', window.location.origin).toString()
+  }
+
+  return null
+}
+
 function browserIsOnline() {
   return typeof navigator === 'undefined' ? true : navigator.onLine
 }
@@ -13,15 +25,17 @@ async function probeConnectivity() {
     return false
   }
 
-  if (!apiBaseUrl) {
-    return true
+  const probeUrl = getProbeUrl()
+
+  if (!probeUrl) {
+    return browserIsOnline()
   }
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS)
 
   try {
-    const response = await fetch(`${apiBaseUrl}/`, {
+    const response = await fetch(probeUrl, {
       method: 'GET',
       cache: 'no-store',
       signal: controller.signal,
@@ -35,7 +49,9 @@ async function probeConnectivity() {
 }
 
 export function useConnectivity() {
-  const [isOnline, setIsOnline] = useState(browserIsOnline)
+  const [connectivityState, setConnectivityState] = useState(() =>
+    browserIsOnline() ? 'unknown' : 'offline',
+  )
   const probeInFlightRef = useRef(false)
 
   const runProbe = useCallback(async () => {
@@ -47,7 +63,7 @@ export function useConnectivity() {
 
     try {
       const result = await probeConnectivity()
-      setIsOnline(result)
+      setConnectivityState(result ? 'online' : 'offline')
     } finally {
       probeInFlightRef.current = false
     }
@@ -57,7 +73,7 @@ export function useConnectivity() {
     runProbe()
 
     const handleOnline = () => runProbe()
-    const handleOffline = () => setIsOnline(false)
+  const handleOffline = () => setConnectivityState('offline')
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
@@ -75,5 +91,8 @@ export function useConnectivity() {
     }
   }, [runProbe])
 
-  return { isOnline }
+  return {
+    isOnline: connectivityState === 'online',
+    probeReady: connectivityState !== 'unknown',
+  }
 }

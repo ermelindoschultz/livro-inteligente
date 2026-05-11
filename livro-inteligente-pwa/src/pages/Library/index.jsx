@@ -92,8 +92,13 @@ export default function LibraryPage() {
 
         <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="border-2 border-[var(--color-line)] bg-[rgba(255,255,255,0.03)] p-4">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-muted)] font-[var(--font-pixel)]">Biblioteca</p>
-            <p className="mt-2 text-2xl font-bold text-[var(--color-accent)] font-[var(--font-display)]">{books.length}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-muted)] font-[var(--font-pixel)]">
+              {isOnline ? 'Biblioteca' : 'No dispositivo'}
+            </p>
+            <p className="mt-2 text-2xl font-bold text-[var(--color-accent)] font-[var(--font-display)]">{visibleBooks.length}</p>
+            <p className="mt-2 text-[10px] uppercase tracking-wide text-[var(--color-muted)] font-[var(--font-pixel)]">
+              {isOnline ? 'na sua biblioteca' : 'livros disponiveis offline'}
+            </p>
           </div>
           <div className="border-2 border-[var(--color-line)] bg-[rgba(255,255,255,0.03)] p-4">
             <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-muted)] font-[var(--font-pixel)]">Guardados</p>
