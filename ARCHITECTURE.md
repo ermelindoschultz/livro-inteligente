@@ -6,6 +6,20 @@ flowchart TD
     %% BOOK INGESTION PIPELINE
     %% =========================
 
+    classDef upload fill:#bfdbfe,stroke:#1d4ed8,color:#1e3a5f
+    classDef watcher fill:#fde68a,stroke:#b45309,color:#78350f
+    classDef processing fill:#fed7aa,stroke:#c2410c,color:#7c2d12
+    classDef extract fill:#bfdbfe,stroke:#2563eb,color:#1e3a5f
+    classDef ai fill:#ddd6fe,stroke:#6d28d9,color:#2e1065
+    classDef persist fill:#bbf7d0,stroke:#15803d,color:#14532d
+    classDef manifest fill:#99f6e4,stroke:#0d9488,color:#134e4a
+    classDef success fill:#86efac,stroke:#15803d,color:#14532d
+    classDef failed fill:#fca5a5,stroke:#dc2626,color:#7f1d1d
+    classDef artifact fill:#fef08a,stroke:#ca8a04,color:#713f12
+    classDef consumer fill:#a5f3fc,stroke:#0891b2,color:#164e63
+    classDef skip fill:#e2e8f0,stroke:#94a3b8,color:#334155
+    classDef api fill:#fed7aa,stroke:#c2410c,color:#7c2d12
+
     A["Book Upload<br/>Raw HTML chapters + assets<br/>R2: livro-inteligente-raw<br/>Folder name = slug"]
 
     %% WATCHER
@@ -15,7 +29,7 @@ flowchart TD
         W1B["Scan root folders<br/>R2 livro-inteligente-raw"]
         W1C["Check slug existence<br/>D1 injected_books"]
 
-        W1D["Register status = QUEUED"]
+        W1D["Upsert status = QUEUED<br/>INSERT ... ON CONFLICT DO UPDATE"]
         W1E["Enqueue folder_name<br/>Cloudflare Queue"]
 
         W1F["Skip already known slugs<br/>Idempotent"]
@@ -34,16 +48,18 @@ flowchart TD
     subgraph P1["2 - make-book-intelligent Worker (Queue Consumer)"]
 
         P0["Consume queue message<br/>folder_name"]
+        P0A["findInjectedBookByFolderName()<br/>D1 injected_books → get id"]
+        P0B["Update status = PROCESSING<br/>D1 injected_books"]
 
         %% 2A
         subgraph P2A["2a - Extract Book Structure"]
 
-            P2A1["Read HTML files<br/>from source R2"]
+            P2A1["Read HTML files<br/>R2 livro-inteligente-raw"]
             P2A2["Convert HTML to Markdown"]
             P2A3["Parse metadata<br/>title, authors, description,<br/>prev/next navigation"]
             P2A4["Classify files<br/>chapter, section,<br/>activities, annex, about"]
             P2A5["Build chapter graph<br/>in-memory metadata object"]
-            P2A6["Write .md files<br/>to processed R2"]
+            P2A6["Write .md files<br/>R2 livro-inteligente-processed"]
 
             P2A1 --> P2A2
             P2A2 --> P2A3
@@ -84,7 +100,7 @@ flowchart TD
         %% 2C
         subgraph P2C["2c - Persist Book Metadata"]
 
-            P2C1["Write final metadata.json"]
+            P2C1["Write final metadata.json<br/>R2 livro-inteligente-processed"]
             P2C2["Upsert D1 book_metadata row"]
 
             P2C1 --> P2C2
@@ -94,10 +110,10 @@ flowchart TD
         %% 2D
         subgraph P2D["2d - Generate Manifest"]
 
-            P2D1["List source assets"]
+            P2D1["List source assets<br/>R2 livro-inteligente-raw"]
             P2D2["Build ordered manifest"]
             P2D3["Include CSS URLs"]
-            P2D4["Write manifest.json"]
+            P2D4["Write manifest.json<br/>R2 livro-inteligente-processed"]
 
             P2D1 --> P2D2
             P2D2 --> P2D3
@@ -105,7 +121,9 @@ flowchart TD
 
         end
 
-        P0 --> P2A
+        P0 --> P0A
+        P0A --> P0B
+        P0B --> P2A
         P2A --> P2B
         P2B --> P2C
         P2C --> P2D
@@ -126,7 +144,7 @@ flowchart TD
     end
 
     %% ARTIFACTS
-    subgraph ART["Generated Artifacts"]
+    subgraph ART["Generated Artifacts<br/>(R2 livro-inteligente-processed)"]
 
         ART1["{slug}/*.md"]
         ART2["{slug}/metadata.json"]
@@ -136,13 +154,22 @@ flowchart TD
 
     end
 
+    %% API
+    subgraph LIAPI["livro-inteligente-api Worker"]
+
+        LIAPI1["GET /books<br/>List from D1 book_metadata"]
+        LIAPI2["GET /books/:id<br/>Single book from D1"]
+        LIAPI3["POST /books/:id/trivia/generate<br/>Workers AI on-demand"]
+        LIAPI4["POST /books<br/>PATCH /books/:id<br/>Write to D1 book_metadata"]
+
+    end
+
     %% CONSUMERS
     subgraph CONS["Consumers"]
 
-        C1["PWA + API"]
-        C2["PWA Service Worker<br/>Offline Cache"]
-        C3["Book Listing API"]
-        C4["Watcher Deduplication"]
+        C2["PWA Service Worker<br/>Offline Cache (manifest.json)"]
+        C3["PWA Reader<br/>Chapter HTML + Markdown"]
+        C4["Watcher Deduplication<br/>(injected_books)"]
 
     end
 
@@ -159,11 +186,45 @@ flowchart TD
     P2C2 --> ART4
     F1A --> ART5
 
-    %% CONSUMERS LINKS
-    ART2 --> C1
+    %% API LINKS
+    ART4 --> LIAPI1
+    ART4 --> LIAPI2
+    ART4 --> LIAPI4
+    ART2 --> LIAPI3
+
+    %% CONSUMER LINKS
     ART3 --> C2
-    ART4 --> C3
+    ART1 --> C3
+    ART2 --> C3
     ART5 --> C4
+
+    %% NODE COLORS
+    class A upload
+    class W1A,W1B,W1C,W1D,W1E watcher
+    class W1F skip
+    class P0 watcher
+    class P0A,P0B processing
+    class P2A1,P2A2,P2A3,P2A4,P2A5,P2A6 extract
+    class P2B1,P2B2,P2B3,P2B4,P2B5,P2B6,P2B7 ai
+    class P2C1,P2C2 persist
+    class P2D1,P2D2,P2D3,P2D4 manifest
+    class F1A,F1B success
+    class F1C failed
+    class ART1,ART2,ART3,ART4,ART5 artifact
+    class LIAPI1,LIAPI2,LIAPI3,LIAPI4 api
+    class C2,C3,C4 consumer
+
+    %% SUBGRAPH COLORS
+    style W1 fill:#fffbeb,stroke:#b45309
+    style P1 fill:#faf5ff,stroke:#7c3aed
+    style P2A fill:#eff6ff,stroke:#2563eb
+    style P2B fill:#f5f3ff,stroke:#6d28d9
+    style P2C fill:#f0fdf4,stroke:#16a34a
+    style P2D fill:#f0fdfa,stroke:#0d9488
+    style F1 fill:#f0fdf4,stroke:#16a34a
+    style ART fill:#fefce8,stroke:#ca8a04
+    style LIAPI fill:#fff7ed,stroke:#c2410c
+    style CONS fill:#ecfeff,stroke:#0891b2
 ```
 
 # Estratégia de geração de dia zero, geração sob demanda e estruturação do runtime
@@ -171,10 +232,21 @@ flowchart TD
 ```mermaid
 flowchart TB
 
+    classDef storage fill:#bfdbfe,stroke:#1d4ed8,color:#1e3a5f
+    classDef dlNode fill:#fed7aa,stroke:#c2410c,color:#7c2d12
+    classDef decision fill:#fef08a,stroke:#ca8a04,color:#713f12
+    classDef cacheNode fill:#bbf7d0,stroke:#15803d,color:#14532d
+    classDef metaNode fill:#99f6e4,stroke:#0d9488,color:#134e4a
+    classDef dexieNode fill:#ddd6fe,stroke:#6d28d9,color:#2e1065
+    classDef readNode fill:#bbf7d0,stroke:#15803d,color:#14532d
+    classDef aiNode fill:#ddd6fe,stroke:#6d28d9,color:#2e1065
+    classDef apiNode fill:#fed7aa,stroke:#c2410c,color:#7c2d12
+    classDef shelfNode fill:#fde68a,stroke:#b45309,color:#78350f
+
     %% =========================================================
     %% SOURCE STORAGE
     %% =========================================================
-    subgraph R2["R2 Object Storage"]
+    subgraph R2["R2 Object Storage (livro-inteligente-processed)"]
         RAW["Book Folder<br/>slug/"]
         MANIFEST["manifest.json<br/>Flat asset list"]
         METADATA["metadata.json<br/>Book structure + AI data"]
@@ -189,6 +261,28 @@ flowchart TB
     RAW --> MANIFEST
     RAW --> METADATA
     RAW --> ASSETS
+
+    %% =========================================================
+    %% LIVRO-INTELIGENTE-API
+    %% =========================================================
+    subgraph LI_API["livro-inteligente-api Worker"]
+        API_LIST["GET /books<br/>D1 book_metadata"]
+        API_GET["GET /books/:id<br/>D1 book_metadata"]
+        API_TRIVIA["POST /books/:id/trivia/generate<br/>Workers AI → llama-3.1-8b-instruct"]
+    end
+
+    %% =========================================================
+    %% SHELF SYNC (ONLINE)
+    %% =========================================================
+    subgraph SHELF["PWA Shelf Sync (Online)"]
+        CONN_SHELF["useConnectivity()<br/>requires online"]
+        FETCH_BOOKS["fetch GET /books<br/>VITE_API_BASE_URL"]
+        UPSERT_DEXIE["upsertBookRecord()<br/>title, description, authors,<br/>publicUrl, metadataUrl, r2FolderPath"]
+    end
+
+    CONN_SHELF -->|online| FETCH_BOOKS
+    FETCH_BOOKS --> API_LIST
+    API_LIST --> UPSERT_DEXIE
 
     %% =========================================================
     %% DOWNLOAD PIPELINE
@@ -267,7 +361,7 @@ flowchart TB
     %% DEXIE DATABASE
     %% =========================================================
     subgraph DEXIE["Dexie.js Database<br/>livro-inteligente-pwa"]
-        BOOKS["books<br/>id"]
+        BOOKS["books<br/>id, publicUrl, metadataUrl"]
 
         SNAPSHOT["metadataSnapshot<br/>Full metadata.json"]
 
@@ -279,11 +373,12 @@ flowchart TB
 
         GAME["gameProgress<br/>[bookId+challengeId]"]
 
-        COINS["aiCoins<br/>Default: 5"]
+        COINS["aiCoins<br/>Default: 5 per book"]
     end
 
     METADATA --> SNAPSHOT
     SNAPSHOT --> BOOKS
+    UPSERT_DEXIE --> BOOKS
 
     BOOKS --> STATUS
     BOOKS --> SOURCE
@@ -292,6 +387,8 @@ flowchart TB
     %% OFFLINE READING FLOW
     %% =========================================================
     subgraph READING_FLOW["Offline Reading Runtime"]
+        SW["Service Worker<br/>(vite-plugin-pwa)<br/>Intercepts fetch"]
+
         OPEN_CACHE["caches.open()<br/>book-store-{id}"]
 
         MATCH["cache.match(chapterUrl)"]
@@ -304,10 +401,11 @@ flowchart TB
 
         BOSSES["Boss Battles"]
 
-        TRIVIA["Trivia / Enrichment"]
+        TRIVIA_READ["Trivia / Enrichment"]
     end
 
-    FINAL_CACHE --> OPEN_CACHE
+    FINAL_CACHE --> SW
+    SW --> OPEN_CACHE
     OPEN_CACHE --> MATCH
     MATCH --> RENDER
 
@@ -315,13 +413,19 @@ flowchart TB
 
     LOAD_META --> NAVIGATION
     LOAD_META --> BOSSES
-    LOAD_META --> TRIVIA
+    LOAD_META --> TRIVIA_READ
 
     %% =========================================================
-    %% LOCAL AI ENRICHMENT
+    %% ON-DEMAND AI TRIVIA (ONLINE)
     %% =========================================================
-    subgraph LOCAL_AI["Local AI Enrichment Flow"]
-        GENERATE["AI Generates Trivia"]
+    subgraph ON_DEMAND["On-Demand AI Trivia (Online)<br/>PWA → API → Workers AI"]
+        CONN_TRIVIA["useConnectivity()<br/>requires online"]
+
+        COIN_CHECK["Check aiCoins > 0<br/>Deduct 1 coin from Dexie"]
+
+        CALL_API["POST /books/:id/trivia/generate<br/>markdownUrl + pageId + chapterId"]
+
+        RECEIVE["Receive trivia[]<br/>from API response"]
 
         CLONE["structuredClone(metadataSnapshot)"]
 
@@ -332,11 +436,40 @@ flowchart TB
         SAVE["Persist Updated Snapshot"]
     end
 
-    GENERATE --> CLONE
+    CONN_TRIVIA -->|online| COIN_CHECK
+    COIN_CHECK --> CALL_API
+    CALL_API --> API_TRIVIA
+    API_TRIVIA --> RECEIVE
+    RECEIVE --> CLONE
     CLONE --> INSERT
     INSERT --> UPDATE
     UPDATE --> SAVE
     SAVE --> SNAPSHOT
+
+    %% NODE COLORS
+    class RAW,MANIFEST,METADATA storage
+    class HTML,MD,STATIC storage
+    class START,LOAD_MANIFEST,EXTRACT_MANIFEST,FALLBACK_METADATA,CONCURRENT,CACHE_REMOTE dlNode
+    class FALLBACK decision
+    class TEMP_CACHE,PROMOTE,FINAL_CACHE,CLEANUP cacheNode
+    class BOOK,PIPELINE,CHAPTERS,STRUCTURE,PATHS,NAV,VIDEOS,BOSS,ENRICH metaNode
+    class BOOKS,SNAPSHOT,STATUS,SOURCE,READING,GAME,COINS dexieNode
+    class SW,OPEN_CACHE,MATCH,RENDER,LOAD_META,NAVIGATION,BOSSES,TRIVIA_READ readNode
+    class CONN_SHELF,FETCH_BOOKS,UPSERT_DEXIE shelfNode
+    class CONN_TRIVIA,COIN_CHECK,CALL_API,RECEIVE,CLONE,INSERT,UPDATE,SAVE aiNode
+    class API_LIST,API_GET,API_TRIVIA apiNode
+
+    %% SUBGRAPH COLORS
+    style R2 fill:#eff6ff,stroke:#1d4ed8
+    style ASSETS fill:#dbeafe,stroke:#2563eb
+    style LI_API fill:#fff7ed,stroke:#c2410c
+    style SHELF fill:#fffbeb,stroke:#b45309
+    style DOWNLOAD fill:#fff7ed,stroke:#c2410c
+    style METADATA_DETAILS fill:#f0fdfa,stroke:#0d9488
+    style CHAPTER fill:#ccfbf1,stroke:#0d9488
+    style DEXIE fill:#faf5ff,stroke:#7c3aed
+    style READING_FLOW fill:#f0fdf4,stroke:#16a34a
+    style ON_DEMAND fill:#f5f3ff,stroke:#6d28d9
 ```
 
 # Segurança
