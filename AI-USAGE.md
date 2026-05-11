@@ -20,6 +20,7 @@ Eu deleguei quase que todo o código escrito à IA, sempre revisando e fazendo p
 Alguns processos eu deleguei as decisões para a IA e outros eu assumi as decisões as passando via PROMPT.
 
 Alguns processos que deleguei as decisões para IA:
+- *Arquivos Mermaid em ARCHIECTURE.md*: Por conta de estar apertado de tempo, deleguei a geração dos arquivos de arquitetura pro Mermaid. Pedi para IA analisar os fluxos específicos, me enviar um resumo, então pedi pro ChatGPT gerar o arquivo mermaid (pois ele tem um renderizador embutido). Fiz alguns ajustes via prompt e, posteriormente, via interface / texto no site mermaid.ai. 
 - *Estrutura e implementação da API*: Fui menos rigido na implementação da API, uma vez que foi um dos elementos que decidi simplificar no processo. Apenas descrevi as funcionalidades necessárias, a estrutura das tabelas do banco, e pedi para que respeitasse os padrões REST e que se inspirasse minimamente na estrutura de organização do Nest (controller -> serviço -> repositório) para ter o minimo de controle da evolução dessa API no futuro. 
 
 Prompt utilizado para realizar o planning:
