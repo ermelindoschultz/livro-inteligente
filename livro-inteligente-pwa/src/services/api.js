@@ -65,8 +65,12 @@ function normalizeBook(book) {
   }
 }
 
-export async function fetchBooks() {
-  const response = await fetch(buildApiUrl('/books'))
+export async function fetchBooks({ page = 1, limit = 12 } = {}) {
+  const url = new URL(buildApiUrl('/books'))
+  url.searchParams.set('page', String(page))
+  url.searchParams.set('limit', String(limit))
+
+  const response = await fetch(url.toString())
 
   if (!response.ok) {
     throw new Error(`A API respondeu com status ${response.status}.`)
@@ -74,20 +78,28 @@ export async function fetchBooks() {
 
   const payload = await response.json()
   const books = Array.isArray(payload.data) ? payload.data : []
+  const meta = payload.meta ?? { page, limit, total: books.length, totalPages: 1 }
 
-  return books.map(normalizeBook)
+  return { books: books.map(normalizeBook), meta }
 }
 
-export async function fetchBooksWithOfflineSupport() {
+export async function fetchBooksWithOfflineSupport({ page = 1, limit = 12 } = {}) {
   try {
-    const books = await fetchBooks()
-    return { books, source: 'api' }
+    const result = await fetchBooks({ page, limit })
+    return { ...result, source: 'api' }
   } catch (error) {
     const { listCachedBooks } = await import('./db.js')
     const cachedBooks = await listCachedBooks()
     if (cachedBooks.length > 0) {
       console.warn('API failed, falling back to cache:', error)
-      return { books: cachedBooks, source: 'cache' }
+      const total = cachedBooks.length
+      const totalPages = Math.ceil(total / limit)
+      const start = (page - 1) * limit
+      return {
+        books: cachedBooks.slice(start, start + limit),
+        meta: { page, limit, total, totalPages },
+        source: 'cache',
+      }
     }
 
     throw error

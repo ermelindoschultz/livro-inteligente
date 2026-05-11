@@ -1,4 +1,4 @@
-import { BookOpen, Reload, WarningDiamond } from 'pixelarticons/react'
+import { BookOpen, Reload, WarningDiamond, ChevronLeft, ChevronRight } from 'pixelarticons/react'
 import BookCard from '../../components/BookCard.jsx'
 import ConfirmDialog from '../../components/ConfirmDialog.jsx'
 import { useBookDownload } from '../../hooks/useBookDownload.js'
@@ -48,6 +48,10 @@ export default function LibraryPage() {
   const {
     books,
     visibleBooks,
+    paginatedBooks,
+    currentPage,
+    totalPages,
+    goToPage,
     downloadedCount,
     downloadStates,
     openingBookId,
@@ -120,17 +124,44 @@ export default function LibraryPage() {
         {showSkeleton ? (
           <ShelfSkeleton />
         ) : visibleBooks.length > 0 ? (
-          visibleBooks.map((book) => (
-            <BookCard
-              key={book.id}
-              book={book}
-              openingBookId={openingBookId}
-              uiState={downloadStates[book.id]}
-              onDownload={handleDownload}
-              onOpen={handleOpen}
-              onDelete={handleDelete}
-            />
-          ))
+          <>
+            {paginatedBooks.map((book) => (
+              <BookCard
+                key={book.id}
+                book={book}
+                openingBookId={openingBookId}
+                uiState={downloadStates[book.id]}
+                onDownload={handleDownload}
+                onOpen={handleOpen}
+                onDelete={handleDelete}
+              />
+            ))}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-2 border-[var(--color-line)] bg-[var(--color-paper)] px-4 py-3 shadow-[var(--shadow-card)]">
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="inline-flex h-9 w-9 items-center justify-center border-2 border-[var(--color-line)] bg-transparent text-[var(--color-ink)] transition-colors duration-200 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:opacity-30 disabled:pointer-events-none"
+                  aria-label="Pagina anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" style={pixelStyle} />
+                </button>
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-muted)] font-[var(--font-pixel)]">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="inline-flex h-9 w-9 items-center justify-center border-2 border-[var(--color-line)] bg-transparent text-[var(--color-ink)] transition-colors duration-200 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:opacity-30 disabled:pointer-events-none"
+                  aria-label="Proxima pagina"
+                >
+                  <ChevronRight className="h-4 w-4" style={pixelStyle} />
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <EmptyState isOnline={isOnline} hasConfig={hasApiConfig} isUsingCache={isUsingCache} />
         )}

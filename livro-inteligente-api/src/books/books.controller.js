@@ -16,12 +16,16 @@ export class BooksController {
 	}
 
 	async list(c) {
-		const service = this.getService(c.env);
-		const books = await service.listAvailableBooks();
+		const rawPage = Number(c.req.query('page') ?? 1);
+		const rawLimit = Number(c.req.query('limit') ?? 12);
 
-		return c.json({
-			data: books,
-		});
+		const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+		const limit = Number.isInteger(rawLimit) && rawLimit > 0 && rawLimit <= 100 ? rawLimit : 12;
+
+		const service = this.getService(c.env);
+		const { items, meta } = await service.listAvailableBooksPaged(page, limit);
+
+		return c.json({ data: items, meta });
 	}
 
 	async getById(c) {

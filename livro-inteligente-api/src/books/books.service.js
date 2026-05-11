@@ -42,6 +42,19 @@ export class BooksService {
 		return books.map((book) => this.serializeBook(book));
 	}
 
+	async listAvailableBooksPaged(page, limit) {
+		const [books, total] = await Promise.all([
+			this.repository.findAllAvailablePaged(page, limit),
+			this.repository.countAllAvailable(),
+		]);
+		const totalPages = Math.ceil(total / limit);
+
+		return {
+			items: books.map((book) => this.serializeBook(book)),
+			meta: { page, limit, total, totalPages },
+		};
+	}
+
 	async getBookMetadataById(id) {
 		const book = await this.repository.findById(id);
 		if (!book || book.status !== 'SUCCESS') {

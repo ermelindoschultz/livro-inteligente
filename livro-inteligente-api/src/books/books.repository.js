@@ -39,6 +39,43 @@ export class BooksRepository {
 		return results ?? [];
 	}
 
+	async countAllAvailable() {
+		const statement = this.db.prepare(`
+			SELECT COUNT(*) AS total
+			FROM injected_books ib
+			INNER JOIN book_metadata bm ON bm.book_id = ib.id
+			WHERE ib.status = ?
+		`);
+		const row = await statement.bind('SUCCESS').first();
+		return row?.total ?? 0;
+	}
+
+	async findAllAvailablePaged(page, limit) {
+		const offset = (page - 1) * limit;
+		const statement = this.db.prepare(`
+			${BASE_BOOK_SELECT}
+			WHERE ib.status = ?
+			ORDER BY bm.title ASC, ib.id ASC
+			LIMIT ? OFFSET ?
+		`);
+		const { results } = await statement.bind('SUCCESS', limit, offset).all();
+		return results ?? [];
+	}
+
+
+	async findAllAvailablePaged(page, limit) {
+		const offset = (page - 1) * limit;
+		const statement = this.db.prepare(`
+			${BASE_BOOK_SELECT}
+			WHERE ib.status = ?
+			ORDER BY bm.title ASC, ib.id ASC
+			LIMIT ? OFFSET ?
+		`);
+		const { results } = await statement.bind('SUCCESS', limit, offset).all();
+
+		return results ?? [];
+	}
+
 	async findById(id) {
 		const statement = this.db.prepare(`
 			${BASE_BOOK_SELECT}

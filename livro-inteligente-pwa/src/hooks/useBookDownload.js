@@ -23,11 +23,14 @@ function sortBooks(left, right) {
   })
 }
 
+const BOOKS_PER_PAGE = 12
+
 export function useBookDownload() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { isOnline, probeReady } = useConnectivity()
   const [downloadStates, setDownloadStates] = useState({})
+  const [currentPage, setCurrentPage] = useState(1)
   const deleteDialog = useConfirmDialog()
 
   useEffect(() => {
@@ -51,7 +54,7 @@ export function useBookDownload() {
   const syncBooksQuery = useQuery({
     queryKey: ['books-sync', apiBaseUrl],
     queryFn: async () => {
-      const { books, source } = await fetchBooksWithOfflineSupport()
+      const { books, source } = await fetchBooksWithOfflineSupport({ page: 1, limit: 1000 })
       if (source === 'api') {
         await syncRemoteBooks(books)
       }
@@ -76,6 +79,9 @@ export function useBookDownload() {
   const books = [...(storedBooksQuery.data ?? [])].sort(sortBooks)
   const visibleBooks = isOnline ? books : books.filter((book) => book.isDownloaded)
   const downloadedCount = books.filter((book) => book.isDownloaded).length
+  const totalPages = Math.max(1, Math.ceil(visibleBooks.length / BOOKS_PER_PAGE))
+  const safePage = Math.min(currentPage, totalPages)
+  const paginatedBooks = visibleBooks.slice((safePage - 1) * BOOKS_PER_PAGE, safePage * BOOKS_PER_PAGE)
   const hasApiConfig = Boolean(apiBaseUrl)
   const syncError = syncBooksQuery.error
   const isUsingCache = syncBooksQuery.data?.source === 'cache'
@@ -189,7 +195,12 @@ export function useBookDownload() {
   }
 
   const handleRefresh = () => {
+    setCurrentPage(1)
     queryClient.invalidateQueries({ queryKey: ['books-sync', apiBaseUrl] })
+  }
+
+  const goToPage = (page) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)))
   }
 
   const showSkeleton =
@@ -201,6 +212,10 @@ export function useBookDownload() {
   return {
     books,
     visibleBooks,
+    paginatedBooks,
+    currentPage: safePage,
+    totalPages,
+    goToPage,
     downloadedCount,
     downloadStates,
     openingBookId,
