@@ -10,9 +10,7 @@ Responda APENAS com um objeto JSON válido, sem markdown, sem texto fora do JSON
 IMPORTANTE: Escape corretamente todas as aspas nas strings com barra invertida (\\").
 IMPORTANTE: Não inclua aspas não-escapadas dentro das strings JSON.
 IMPORTANTE: Mantenha todas as strings em uma única linha, sem quebras de linha.
-IMPORTANTE: A pergunta deve ter NO MÁXIMO 150 caracteres.
-IMPORTANTE: Cada alternativa deve ter NO MÁXIMO 120 caracteres.
-IMPORTANTE: A explicação deve ter NO MÁXIMO 200 caracteres.
+
 IMPORTANTE: Seja conciso e direto em todas as strings.
 IMPORTANTE: Deve existir apenas uma resposta certa.
 
@@ -118,25 +116,6 @@ function validateTrivia(trivia) {
 	}
 
 	if (typeof trivia.explanation !== 'string' || trivia.explanation.trim().length === 0) {
-		return false;
-	}
-
-	// Enforce character limits
-	const limits = {
-		question: 150,
-		optionText: 120,
-		explanation: 200,
-	};
-
-	if (trivia.question.length > limits.question) {
-		return false;
-	}
-
-	if (trivia.options.some(opt => opt.text.length > limits.optionText)) {
-		return false;
-	}
-
-	if (trivia.explanation.length > limits.explanation) {
 		return false;
 	}
 

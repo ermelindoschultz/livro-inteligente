@@ -59,19 +59,6 @@ export class BooksRepository {
 			LIMIT ? OFFSET ?
 		`);
 		const { results } = await statement.bind('SUCCESS', limit, offset).all();
-		return results ?? [];
-	}
-
-
-	async findAllAvailablePaged(page, limit) {
-		const offset = (page - 1) * limit;
-		const statement = this.db.prepare(`
-			${BASE_BOOK_SELECT}
-			WHERE ib.status = ?
-			ORDER BY bm.title ASC, ib.id ASC
-			LIMIT ? OFFSET ?
-		`);
-		const { results } = await statement.bind('SUCCESS', limit, offset).all();
 
 		return results ?? [];
 	}
