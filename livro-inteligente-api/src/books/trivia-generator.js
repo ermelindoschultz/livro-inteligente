@@ -1,4 +1,4 @@
-const MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
+const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 const MAX_ATTEMPTS = 2;
 
 const SYSTEM_PROMPT = `Você é um criador de quiz educacional.
