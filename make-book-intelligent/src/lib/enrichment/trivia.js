@@ -10,6 +10,7 @@ Responda APENAS com um objeto JSON válido, sem markdown, sem texto fora do JSON
 
 IMPORTANTE: Todas as strings devem ter aspas escapadas corretamente (use \\" para aspas dentro de strings).
 IMPORTANTE: Não quebre linhas dentro das strings - mantenha tudo em uma linha.
+IMPORTANTE: Deve existir apenas UMA resposta certa.
 
 Estrutura esperada:
 {

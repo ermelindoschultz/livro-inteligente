@@ -14,6 +14,7 @@ IMPORTANTE: A pergunta deve ter NO MÁXIMO 150 caracteres.
 IMPORTANTE: Cada alternativa deve ter NO MÁXIMO 120 caracteres.
 IMPORTANTE: A explicação deve ter NO MÁXIMO 200 caracteres.
 IMPORTANTE: Seja conciso e direto em todas as strings.
+IMPORTANTE: Deve existir apenas uma resposta certa.
 
 Estrutura esperada:
 {
