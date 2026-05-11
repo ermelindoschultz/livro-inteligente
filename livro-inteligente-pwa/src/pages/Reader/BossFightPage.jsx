@@ -10,18 +10,18 @@ import RetroDialog from '../../components/GameAssets/RetroDialog.jsx'
 
 function getOptionClass({ hasSelection, isSelected, isCorrect }) {
   if (!hasSelection) {
-    return 'border-[var(--color-line)] bg-white/80 text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]'
+    return 'border-[var(--color-line)] bg-[var(--color-paper-strong)] text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]'
   }
 
   if (isCorrect) {
-    return 'border-emerald-300 bg-emerald-50 text-emerald-900'
+    return 'border-[var(--color-success)] bg-[rgba(80,200,120,0.12)] text-[var(--color-success)]'
   }
 
   if (isSelected) {
-    return 'border-[rgba(138,69,48,0.28)] bg-[var(--color-danger-soft)] text-[var(--color-danger)]'
+    return 'border-[var(--color-danger)] bg-[rgba(232,64,64,0.12)] text-[var(--color-danger)]'
   }
 
-  return 'border-[var(--color-line)] bg-[rgba(255,255,255,0.68)] text-[var(--color-muted)]'
+  return 'border-[var(--color-line)] bg-[rgba(255,255,255,0.04)] text-[var(--color-muted)]'
 }
 
 export default function BossFightPage({
@@ -99,12 +99,12 @@ export default function BossFightPage({
 
   if (totalQuestions === 0) {
     return (
-      <section className="space-y-4 rounded-[24px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.9)] p-5 shadow-[0_20px_50px_rgba(47,36,25,0.08)] sm:p-6">
+      <section className="space-y-4 border-2 border-[var(--color-line)] bg-[var(--color-paper)] p-5 shadow-[var(--shadow-card)] sm:p-6">
         <RetroDialog tone="warning" message="Esta batalha ainda nao recebeu perguntas finais. Gere o desafio novamente para liberar o chefe deste capitulo." />
         <button
           type="button"
           onClick={onRetreat}
-          className="inline-flex items-center gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+          className="inline-flex items-center gap-2 border-2 border-[var(--color-line)] bg-transparent px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-[var(--color-ink)] font-[var(--font-pixel)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
         >
           <ArrowLeft width={18} height={18} />
           Voltar a leitura
@@ -115,16 +115,16 @@ export default function BossFightPage({
 
   if (isVictorious) {
     return (
-      <section className="space-y-5 rounded-[24px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.9)] p-5 shadow-[0_20px_50px_rgba(47,36,25,0.08)] sm:p-6">
+      <section className="space-y-5 border-2 border-[var(--color-line)] bg-[var(--color-paper)] p-5 shadow-[var(--shadow-card)] sm:p-6">
         <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-center">
-          <div className="rounded-[24px] border border-[var(--color-line)] bg-[rgba(32,21,13,0.92)] p-5 text-white">
+          <div className="border-2 border-[var(--color-line)] bg-[rgba(32,21,13,0.92)] p-5 text-white">
             <div className="flex justify-center">
               <BossAvatar size={176} defeated variationId={bossMeta?.variationId} />
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(35,92,59,0.2)] bg-[var(--color-success-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-success)]">
+            <div className="inline-flex items-center gap-2 border border-[var(--color-success)] bg-[rgba(80,200,120,0.12)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--color-success)] font-[var(--font-pixel)]">
               <Crown width={16} height={16} />
               Chefe derrotado
             </div>
@@ -134,7 +134,7 @@ export default function BossFightPage({
               type="button"
               onClick={handleFinish}
               disabled={isCompleting}
-              className="inline-flex items-center gap-2 rounded-[18px] border border-[rgba(195,122,74,0.22)] bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              className="inline-flex items-center gap-2 border-2 border-[var(--color-accent)] bg-[var(--color-accent)] px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#0d0d0d] font-[var(--font-pixel)] hover:bg-transparent hover:text-[var(--color-accent)] disabled:opacity-60"
             >
               <ArrowRight width={18} height={18} />
               {isCompleting ? 'Avancando...' : 'Ir para o proximo desafio'}
@@ -146,9 +146,9 @@ export default function BossFightPage({
   }
 
   return (
-    <section className="space-y-5 rounded-[24px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.9)] p-5 shadow-[0_20px_50px_rgba(47,36,25,0.08)] sm:p-6">
+    <section className="space-y-5 border-2 border-[var(--color-line)] bg-[var(--color-paper)] p-5 shadow-[var(--shadow-card)] sm:p-6">
       <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <div className="rounded-[24px] border border-[var(--color-line)] bg-[rgba(32,21,13,0.92)] p-5 text-white shadow-[0_18px_45px_rgba(47,36,25,0.2)]">
+        <div className="border-2 border-[var(--color-line)] bg-[rgba(32,21,13,0.92)] p-5 text-white shadow-[var(--shadow-card)]">
           <div className="flex justify-center">
             <BossAvatar size={176} defeated={remainingBossHp === 0} variationId={bossMeta?.variationId} />
           </div>
@@ -168,14 +168,14 @@ export default function BossFightPage({
         <div className="space-y-4">
           <RetroDialog tone={lastResult === 'wrong' ? 'warning' : lastResult === 'correct' ? 'success' : 'default'} message={battleMessage} />
 
-          <div className="rounded-[24px] border border-[var(--color-line)] bg-white/80 p-5 shadow-[0_12px_30px_rgba(47,36,25,0.06)]">
+          <div className="border-2 border-[var(--color-line)] bg-[var(--color-paper-strong)] p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">Pergunta {currentQuestionIndex + 1} de {totalQuestions}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-muted)] font-[var(--font-pixel)]">Pergunta {currentQuestionIndex + 1} de {totalQuestions}</p>
                 <h3 className="mt-2 text-lg font-semibold text-[var(--color-ink)]">{challenge?.title}</h3>
               </div>
 
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
+              <div className="inline-flex items-center gap-2 border border-[var(--color-accent)] bg-[var(--color-accent-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--color-accent)] font-[var(--font-pixel)]">
                 <Sword width={16} height={16} />
                 {correctCount} acertos
               </div>
@@ -197,9 +197,9 @@ export default function BossFightPage({
                       type="button"
                       onClick={() => void handleSelectOption(label)}
                       disabled={hasSelection}
-                      className={`flex w-full items-start gap-3 rounded-[18px] border px-4 py-3 text-left text-sm transition disabled:cursor-default ${getOptionClass({ hasSelection, isSelected, isCorrect })}`}
+                      className={`flex w-full items-start gap-3 border-2 px-4 py-3 text-left text-sm transition disabled:cursor-default ${getOptionClass({ hasSelection, isSelected, isCorrect })}`}
                     >
-                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-current text-xs font-semibold uppercase">
+                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center border-2 border-current text-xs font-semibold uppercase">
                         {label}
                       </span>
                       <span className="min-w-0 flex-1 leading-6">{text}</span>
@@ -209,7 +209,7 @@ export default function BossFightPage({
               </div>
 
               {hasSelection ? (
-                <div className={`rounded-[18px] border px-4 py-4 text-sm leading-6 ${isAnswerCorrect ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-[rgba(138,69,48,0.24)] bg-[var(--color-danger-soft)] text-[var(--color-danger)]'}`}>
+                <div className={`border-2 px-4 py-4 text-sm leading-6 ${isAnswerCorrect ? 'border-[var(--color-success)] bg-[rgba(80,200,120,0.12)] text-[var(--color-success)]' : 'border-[var(--color-danger)] bg-[rgba(232,64,64,0.12)] text-[var(--color-danger)]'}`}>
                   <div className="flex items-start gap-3">
                     {isAnswerCorrect ? <Sword width={18} height={18} /> : <WarningDiamond width={18} height={18} />}
                     <div className="min-w-0 flex-1">
@@ -226,17 +226,17 @@ export default function BossFightPage({
             <button
               type="button"
               onClick={onRetreat}
-              className="inline-flex items-center gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+              className="inline-flex items-center gap-2 border-2 border-[var(--color-line)] bg-transparent px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-[var(--color-ink)] font-[var(--font-pixel)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
             >
               <ArrowLeft width={18} height={18} />
-              Voltar a leitura
+              Voltar
             </button>
 
             {hasSelection && isAnswerCorrect ? (
               <button
                 type="button"
                 onClick={() => void handleContinue()}
-                className="inline-flex items-center gap-2 rounded-[18px] border border-[rgba(195,122,74,0.22)] bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white"
+                className="inline-flex items-center gap-2 border-2 border-[var(--color-accent)] bg-[var(--color-accent)] px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#0d0d0d] font-[var(--font-pixel)] hover:bg-transparent hover:text-[var(--color-accent)]"
               >
                 <ArrowRight width={18} height={18} />
                 {correctCount >= totalQuestions ? 'Concluir batalha' : 'Proxima pergunta'}

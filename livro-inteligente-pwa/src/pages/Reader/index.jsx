@@ -453,12 +453,12 @@ export default function ReaderPage() {
 
 
   return (
-    <section className="relative flex min-h-[calc(100svh-8.5rem)] flex-col overflow-visible rounded-[28px] border border-[var(--color-line)] bg-[rgba(255,251,244,0.9)] shadow-[var(--shadow-card)] backdrop-blur-md">
-      <header className="sticky top-0 z-20 border-b border-[var(--color-line)] bg-[rgba(255,250,241,0.96)] px-3 py-2.5 backdrop-blur-md sm:px-5">
+    <section className="relative flex min-h-[calc(100svh-8.5rem)] flex-col overflow-visible border-2 border-[var(--color-line)] bg-[var(--color-paper)] shadow-[var(--shadow-card)]">
+      <header className="sticky top-0 z-20 border-b-2 border-[var(--color-line)] bg-[#161620] px-3 py-2.5 sm:px-5">
         <div className="flex items-center gap-3">
           <Link
             to="/"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/80 text-[var(--color-ink)]"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center border-2 border-[var(--color-line)] bg-transparent text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
             aria-label="Voltar para a estante"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -474,7 +474,7 @@ export default function ReaderPage() {
               <button
                 type="button"
                 onClick={handleCopyChapterForAi}
-                className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-line)] bg-white/80 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]"
+                className="inline-flex h-10 items-center gap-2 border border-[var(--color-accent)] bg-[var(--color-accent-soft)] px-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-accent)]"
                 aria-label="Copiar capitulo para IA"
               >
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(173,92,40,0.12)]">
@@ -487,7 +487,7 @@ export default function ReaderPage() {
             <button
               type="button"
               onClick={() => setIsChapterMenuOpen((value) => !value)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/80 text-[var(--color-ink)]"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center border-2 border-[var(--color-line)] bg-transparent text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
               aria-expanded={isChapterMenuOpen}
               aria-label="Abrir sumario"
             >
@@ -512,13 +512,13 @@ export default function ReaderPage() {
 
           <span className="shrink-0 pt-0.5">{Math.min(currentPosition + 1, totalChapters)} / {totalChapters || 0}</span>
         </div>
-        <div className="mt-2 h-1 overflow-hidden rounded-full bg-[rgba(47,36,25,0.08)]">
-          <div className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+        <div className="mt-2 h-1.5 overflow-hidden border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.06)]">
+          <div className="h-full bg-[var(--color-accent)] transition-all duration-300" style={{ width: `${progressPercent}%` }} />
         </div>
       </header>
 
       {isChapterMenuOpen ? (
-        <aside className="absolute inset-x-3 top-[5rem] z-30 max-h-[min(76svh,38rem)] overflow-auto rounded-[24px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.98)] p-3 shadow-[0_24px_60px_rgba(47,36,25,0.18)] sm:inset-x-auto sm:right-5 sm:w-[28rem]">
+        <aside className="absolute inset-x-3 top-[5rem] z-30 max-h-[min(76svh,38rem)] overflow-auto border-2 border-[var(--color-line)] bg-[#161620] p-3 shadow-[var(--shadow-card)] sm:inset-x-auto sm:right-5 sm:w-[28rem]">
           <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Paginas do livro</p>
           <nav className="space-y-1">
             {chapterTree.map((item) => (
@@ -592,13 +592,13 @@ export default function ReaderPage() {
       </div>
 
       {!isSpecialView ? (
-        <footer className="sticky bottom-0 z-20 border-t border-[var(--color-line)] bg-[rgba(255,250,241,0.96)] px-3 py-2.5 backdrop-blur-md sm:px-5">
+        <footer className="sticky bottom-0 z-20 border-t-2 border-[var(--color-line)] bg-[var(--color-paper-strong)] px-3 py-2.5 sm:px-5" style={{ backgroundColor: '#161620' }}>
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={handleBackward}
               disabled={effectiveView === 'boss' ? false : !hasPrevious}
-              className="inline-flex min-w-0 items-center gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-left text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
+              className="inline-flex min-w-0 items-center gap-2 border border-[var(--color-line)] bg-[rgba(255,255,255,0.04)] px-3 py-2.5 text-left text-sm font-semibold text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4 shrink-0" />
               <span className="truncate">
@@ -613,15 +613,15 @@ export default function ReaderPage() {
             </button>
 
             <div className="text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Progresso</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">{Math.min(currentPosition + 1, totalChapters)} de {totalChapters || 0}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-accent)] font-[var(--font-pixel)]">Progresso</p>
+              <p className="mt-1 text-sm font-bold text-[var(--color-ink)]">{Math.min(currentPosition + 1, totalChapters)} de {totalChapters || 0}</p>
             </div>
 
             <button
               type="button"
               onClick={handleForward}
               disabled={effectiveView === 'boss' ? true : effectiveView === 'intro' ? false : isAtLastOfGroup ? false : !hasNext}
-              className="inline-flex min-w-0 items-center justify-end gap-2 rounded-[18px] border border-[var(--color-line)] bg-white/80 px-3 py-2.5 text-right text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-45"
+              className="inline-flex min-w-0 items-center justify-end gap-2 border border-[var(--color-line)] bg-[rgba(255,255,255,0.04)] px-3 py-2.5 text-right text-sm font-semibold text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <span className="truncate">
                 {effectiveView === 'intro'

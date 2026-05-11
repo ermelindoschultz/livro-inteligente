@@ -5,6 +5,12 @@ const BASE_READER_STYLES = `
   :host {
     display: block;
     color: #2f2419;
+    /* Reset inheritable properties that leak in from the pixel-art theme on the document root */
+    font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    image-rendering: auto;
   }
 
   *, *::before, *::after {
@@ -98,14 +104,14 @@ export default function BookViewer({ bodyHtml, chapterTitle, isLoading, styleshe
   }, [bodyHtml, stylesheets])
 
   return (
-    <div className="relative h-full min-h-[68svh] overflow-hidden rounded-[24px] border border-[rgba(106,80,45,0.12)] bg-[rgba(255,255,255,0.72)] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] sm:min-h-[72svh]">
+    <div className="relative h-full min-h-[68svh] overflow-hidden border-2 border-[var(--color-line)] bg-[rgba(255,255,255,0.72)] sm:min-h-[72svh]">
       <div ref={hostRef} className="h-full overflow-auto px-0 py-0" aria-label={chapterTitle || 'Conteudo do livro'} />
 
       {isLoading ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-[rgba(255,250,241,0.78)] backdrop-blur-[2px]">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[var(--color-paper-strong)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] shadow-[0_12px_30px_rgba(47,36,25,0.12)]">
+        <div className="absolute inset-0 flex items-center justify-center bg-[rgba(13,13,13,0.7)]">
+          <div className="inline-flex items-center gap-2 border-2 border-[var(--color-accent)] bg-[var(--color-paper-strong)] px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-[var(--color-accent)] font-[var(--font-pixel)]">
             <LoaderCircle className="h-4 w-4 animate-spin" />
-            Carregando pagina
+            Carregando
           </div>
         </div>
       ) : null}

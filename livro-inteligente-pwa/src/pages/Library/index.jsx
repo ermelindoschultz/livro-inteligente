@@ -1,7 +1,9 @@
-import { BookOpenText, RefreshCcw, TriangleAlert } from 'lucide-react'
+import { BookOpen, Reload, WarningDiamond } from 'pixelarticons/react'
 import BookCard from '../../components/BookCard.jsx'
 import ConfirmDialog from '../../components/ConfirmDialog.jsx'
 import { useBookDownload } from '../../hooks/useBookDownload.js'
+
+const pixelStyle = { imageRendering: 'pixelated' }
 
 function ShelfSkeleton() {
   return (
@@ -9,13 +11,13 @@ function ShelfSkeleton() {
       {[1, 2, 3].map((item) => (
         <div
           key={item}
-          className="animate-pulse rounded-[26px] border border-[var(--color-line)] bg-[var(--color-paper)] p-5 shadow-[var(--shadow-card)]"
+          className="animate-pulse border-2 border-[var(--color-line)] bg-[var(--color-paper)] p-5 shadow-[var(--shadow-card)]"
         >
-          <div className="h-4 w-24 rounded-full bg-[var(--color-accent-soft)]" />
-          <div className="mt-4 h-8 w-2/3 rounded-full bg-[rgba(47,36,25,0.08)]" />
-          <div className="mt-3 h-4 w-full rounded-full bg-[rgba(47,36,25,0.06)]" />
-          <div className="mt-2 h-4 w-4/5 rounded-full bg-[rgba(47,36,25,0.06)]" />
-          <div className="mt-5 h-12 rounded-2xl bg-[rgba(47,36,25,0.08)]" />
+          <div className="h-3 w-24 bg-[var(--color-accent-soft)]" />
+          <div className="mt-4 h-6 w-2/3 bg-[rgba(255,255,255,0.06)]" />
+          <div className="mt-3 h-3 w-full bg-[rgba(255,255,255,0.04)]" />
+          <div className="mt-2 h-3 w-4/5 bg-[rgba(255,255,255,0.04)]" />
+          <div className="mt-5 h-12 bg-[rgba(255,255,255,0.06)]" />
         </div>
       ))}
     </div>
@@ -24,12 +26,12 @@ function ShelfSkeleton() {
 
 function EmptyState({ isOnline, hasConfig, isUsingCache }) {
   return (
-    <section className="rounded-[28px] border border-dashed border-[var(--color-line)] bg-[rgba(255,251,244,0.5)] p-8 text-center shadow-[var(--shadow-card)]">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
-        <BookOpenText className="h-8 w-8" />
+    <section className="border-2 border-dashed border-[var(--color-line)] bg-[var(--color-paper)] p-8 text-center shadow-[var(--shadow-card)]">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center border-2 border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
+        <BookOpen className="h-8 w-8" style={pixelStyle} />
       </div>
-      <h2 className="font-display mt-5 text-3xl text-[var(--color-ink)]">Nenhum livro visível</h2>
-      <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+      <h2 className="mt-5 text-lg text-[var(--color-ink)] font-[var(--font-display)]">Nenhum livro visivel</h2>
+      <p className="mt-3 text-base leading-6 text-[var(--color-muted)] font-[var(--font-sans)]">
         {isOnline
           ? hasConfig
             ? 'Ainda nao encontramos livros disponiveis. Volte em instantes para continuar sua leitura.'
@@ -64,47 +66,47 @@ export default function LibraryPage() {
 
   return (
     <>
-      <section className="rounded-[32px] border border-[var(--color-line)] bg-[var(--color-paper)] px-5 py-6 shadow-[var(--shadow-card)] backdrop-blur-md sm:px-7 sm:py-8">
+      <section className="border-2 border-[var(--color-line)] bg-[var(--color-paper)] px-5 py-6 shadow-[var(--shadow-card)] sm:px-7 sm:py-8">
         <div className="flex items-center justify-between gap-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-[rgba(255,255,255,0.48)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-muted)]">
-            <BookOpenText className="h-3.5 w-3.5" />
+          <div className="inline-flex items-center gap-2 border border-[var(--color-accent)] bg-[var(--color-accent-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[var(--color-accent)] font-[var(--font-pixel)]">
+            <BookOpen className="h-3.5 w-3.5" style={pixelStyle} />
             Sua estante
           </div>
           <button
             type="button"
             onClick={handleRefresh}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-line)] bg-[rgba(255,255,255,0.58)] text-[var(--color-ink)] transition-transform duration-300 hover:rotate-12"
+            className="inline-flex h-10 w-10 items-center justify-center border-2 border-[var(--color-line)] bg-transparent text-[var(--color-ink)] transition-transform duration-200 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
             aria-label="Atualizar estante"
           >
-            <RefreshCcw className={`h-4 w-4 ${syncBooksQuery.isFetching ? 'animate-spin' : ''}`} />
+            <Reload className={`h-4 w-4 ${syncBooksQuery.isFetching ? 'animate-spin' : ''}`} style={pixelStyle} />
           </button>
         </div>
 
-        <h1 className="font-display mt-5 text-xl leading-[0.98] text-[var(--color-ink)] text-balance sm:text-4xl">
+        <h1 className="mt-5 text-lg leading-tight text-[var(--color-ink)] text-balance sm:text-xl font-[var(--font-display)]">
           Uma estante de livros cheia de desafios.
         </h1>
 
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--color-muted)] sm:text-base">
-          Guarde seus desafios no aparelho e continue superando provas e missões mesmo quando a internet falhar. Seu progresso sempre com você.
+        <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-muted)] sm:text-lg font-[var(--font-sans)]">
+          Guarde seus desafios no aparelho e continue superando provas e missoes mesmo quando a internet falhar. Seu progresso sempre com voce.
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-3">
-          <div className="rounded-[22px] border border-[var(--color-line)] bg-[rgba(255,255,255,0.56)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Biblioteca</p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-ink)]">{books.length}</p>
+          <div className="border-2 border-[var(--color-line)] bg-[rgba(255,255,255,0.03)] p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-muted)] font-[var(--font-pixel)]">Biblioteca</p>
+            <p className="mt-2 text-2xl font-bold text-[var(--color-accent)] font-[var(--font-display)]">{books.length}</p>
           </div>
-          <div className="rounded-[22px] border border-[var(--color-line)] bg-[rgba(255,255,255,0.56)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Guardados</p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-ink)]">{downloadedCount}</p>
+          <div className="border-2 border-[var(--color-line)] bg-[rgba(255,255,255,0.03)] p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-muted)] font-[var(--font-pixel)]">Guardados</p>
+            <p className="mt-2 text-2xl font-bold text-[var(--color-success)] font-[var(--font-display)]">{downloadedCount}</p>
           </div>
         </div>
       </section>
 
       {syncErrorMessage ? (
-        <section className="rounded-[24px] border border-[rgba(138,69,48,0.14)] bg-[rgba(255,244,234,0.86)] px-4 py-4 text-sm text-[var(--color-danger)] shadow-[var(--shadow-card)]">
+        <section className="border-2 border-[rgba(232,64,64,0.4)] bg-[var(--color-danger-soft)] px-4 py-4 text-sm text-[var(--color-danger)] shadow-[var(--shadow-card)]">
           <div className="flex items-start gap-3">
-            <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
-            <p className="leading-6">{syncErrorMessage}</p>
+            <WarningDiamond className="mt-0.5 h-5 w-5 shrink-0" style={pixelStyle} />
+            <p className="leading-6 font-[var(--font-sans)] text-base">{syncErrorMessage}</p>
           </div>
         </section>
       ) : null}

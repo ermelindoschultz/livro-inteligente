@@ -1,4 +1,4 @@
-import { BookMarked, LibraryBig, WifiOff } from 'lucide-react'
+import { Bookmark, Library, Wifi } from 'pixelarticons/react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useConnectivity } from '../../hooks/useConnectivity.js'
 import ConnectionStatus from '../ConnectionStatus.jsx'
@@ -10,10 +10,10 @@ function NavItem({ to, children }) {
       to={to}
       end={to === '/'}
       className={({ isActive }) =>
-        `inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+        `inline-flex items-center gap-2 border-2 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors font-[var(--font-pixel)] ${
           isActive
-            ? 'border-transparent bg-[var(--color-ink)] text-[#fffaf2]'
-            : 'border-[var(--color-line)] bg-[rgba(255,255,255,0.62)] text-[var(--color-ink)]'
+            ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[#0d0d0d]'
+            : 'border-[var(--color-line)] bg-transparent text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]'
         }`
       }
     >
@@ -29,33 +29,31 @@ export default function Layout({ children }) {
 
   return (
     <div
-      className={`relative min-h-screen overflow-hidden pb-8 pt-4 sm:pb-10 sm:pt-6 ${
+      className={`relative z-10 min-h-screen overflow-hidden pb-8 pt-4 sm:pb-10 sm:pt-6 ${
         isReaderRoute ? 'px-2 sm:px-3 lg:px-4' : 'px-4 sm:px-6'
       }`}
     >
       <ScrollToTop />
-      <div className="pointer-events-none absolute inset-x-0 top-[-160px] h-[360px] rounded-full bg-[radial-gradient(circle,_rgba(159,111,42,0.18),_transparent_62%)] blur-3xl" />
-      <div className="pointer-events-none absolute right-[-80px] top-[28%] h-56 w-56 rounded-full bg-[radial-gradient(circle,_rgba(84,120,100,0.14),_transparent_66%)] blur-3xl" />
 
       <div
         className={`relative mx-auto flex w-full flex-col gap-4 ${
           isReaderRoute ? 'max-w-6xl xl:max-w-[90rem]' : 'max-w-3xl'
         }`}
       >
-        <header className="rounded-[32px] border border-[var(--color-line)] bg-[var(--color-paper)] px-4 py-2 shadow-[var(--shadow-card)] backdrop-blur-md sm:px-7">
+        <header className="border-2 border-[var(--color-line)] bg-[var(--color-paper)] px-4 py-2 shadow-[var(--shadow-card)]">
           <div className="flex flex-row items-center justify-between gap-3">
             <Link
               to="/"
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-[rgba(255,255,255,0.48)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-muted)] shrink-0"
+              className="inline-flex items-center gap-2 border border-[var(--color-line)] bg-[rgba(255,255,255,0.04)] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[var(--color-accent)] shrink-0 font-[var(--font-pixel)]"
             >
-              <BookMarked className="h-3.5 w-3.5 shrink-0" />
+              <Bookmark className="h-3.5 w-3.5 shrink-0" style={{ imageRendering: 'pixelated' }} />
               <span className="hidden sm:inline whitespace-nowrap">Desafio da Leitura Inteligente</span>
             </Link>
 
             <nav className="flex items-center gap-2 shrink-0">
               <ConnectionStatus />
               <NavItem to="/">
-                <LibraryBig className="h-4 w-4" />
+                <Library className="h-4 w-4" style={{ imageRendering: 'pixelated' }} />
                 Estante
               </NavItem>
             </nav>
@@ -63,10 +61,10 @@ export default function Layout({ children }) {
         </header>
 
         {!isOnline ? (
-          <section className="rounded-[24px] border border-[rgba(138,69,48,0.14)] bg-[rgba(255,244,234,0.86)] px-4 py-4 text-sm text-[var(--color-danger)] shadow-[var(--shadow-card)]">
+          <section className="border-2 border-[rgba(232,64,64,0.4)] bg-[var(--color-danger-soft)] px-4 py-4 text-sm text-[var(--color-danger)] shadow-[var(--shadow-card)]">
             <div className="flex items-start gap-3">
-              <WifiOff className="mt-0.5 h-5 w-5 shrink-0" />
-              <p className="leading-6">
+              <Wifi className="mt-0.5 h-5 w-5 shrink-0 opacity-50" style={{ imageRendering: 'pixelated' }} />
+              <p className="leading-6 font-[var(--font-sans)] text-base">
                 Você está sem conexão com a internet. Só é possível ler os livros que já foram baixados no seu dispositivo.
               </p>
             </div>

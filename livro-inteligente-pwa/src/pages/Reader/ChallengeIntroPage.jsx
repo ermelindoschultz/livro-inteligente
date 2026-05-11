@@ -28,16 +28,16 @@ export default function ChallengeIntroPage({ challenge, challengePages, bossMeta
   const difficulty = getDifficultyLabel(challengePages.length)
 
   return (
-    <section className="space-y-5 rounded-[24px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.9)] p-5 shadow-[0_20px_50px_rgba(47,36,25,0.08)] sm:p-6">
-      <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">
-        <span className="rounded-full border border-[var(--color-line)] bg-white/80 px-3 py-1">Desafio {challenge?.order ?? challenge?.position ?? '-'}</span>
-        <span className="rounded-full border border-[var(--color-line)] bg-white/80 px-3 py-1">{difficulty}</span>
+    <section className="space-y-5 border-2 border-[var(--color-line)] bg-[var(--color-paper)] p-5 shadow-[var(--shadow-card)] sm:p-6">
+      <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-wide text-[var(--color-muted)] font-[var(--font-pixel)]">
+        <span className="border border-[var(--color-line)] bg-[var(--color-paper-strong)] px-3 py-1">Desafio {challenge?.order ?? challenge?.position ?? '-'}</span>
+        <span className="border border-[var(--color-line)] bg-[var(--color-paper-strong)] px-3 py-1">{difficulty}</span>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_20rem] lg:items-start">
         <div className="space-y-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Introducao do desafio</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-accent)] font-[var(--font-pixel)]">Introducao do desafio</p>
             <h2 className="font-display mt-2 text-3xl text-[var(--color-ink)]">{challenge?.title}</h2>
             <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
               Explore {sectionCount} partes deste capitulo, identifique as ideias centrais e prepare-se para enfrentar um chefe que pune respostas superficiais.
@@ -45,26 +45,26 @@ export default function ChallengeIntroPage({ challenge, challengePages, bossMeta
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[18px] border border-[var(--color-line)] bg-white/80 p-4">
+            <div className="border-2 border-[var(--color-line)] bg-[var(--color-paper-strong)] p-4">
               <div className="flex items-center gap-2 text-[var(--color-accent)]">
                 <BookOpen width={20} height={20} />
-                <span className="text-xs font-semibold uppercase tracking-[0.18em]">Secoes</span>
+                <span className="text-[10px] font-bold uppercase tracking-wide font-[var(--font-pixel)]">Secoes</span>
               </div>
               <p className="mt-3 text-2xl font-semibold text-[var(--color-ink)]">{sectionCount}</p>
             </div>
 
-            <div className="rounded-[18px] border border-[var(--color-line)] bg-white/80 p-4">
+            <div className="border-2 border-[var(--color-line)] bg-[var(--color-paper-strong)] p-4">
               <div className="flex items-center gap-2 text-[var(--color-accent)]">
                 <Clock width={20} height={20} />
-                <span className="text-xs font-semibold uppercase tracking-[0.18em]">Leitura</span>
+                <span className="text-[10px] font-bold uppercase tracking-wide font-[var(--font-pixel)]">Leitura</span>
               </div>
               <p className="mt-3 text-2xl font-semibold text-[var(--color-ink)]">{estimatedReadingTime} min</p>
             </div>
 
-            <div className="rounded-[18px] border border-[var(--color-line)] bg-white/80 p-4">
+            <div className="border-2 border-[var(--color-line)] bg-[var(--color-paper-strong)] p-4">
               <div className="flex items-center gap-2 text-[var(--color-accent)]">
                 <Shield width={20} height={20} />
-                <span className="text-xs font-semibold uppercase tracking-[0.18em]">Fraqueza</span>
+                <span className="text-[10px] font-bold uppercase tracking-wide font-[var(--font-pixel)]">Fraqueza</span>
               </div>
               <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-ink)]">{bossMeta?.weakness}</p>
             </div>
@@ -76,7 +76,7 @@ export default function ChallengeIntroPage({ challenge, challengePages, bossMeta
             <button
               type="button"
               onClick={onStart}
-              className="inline-flex items-center gap-2 rounded-[18px] border border-[rgba(195,122,74,0.22)] bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(173,92,40,0.25)]"
+              className="inline-flex items-center gap-2 border-2 border-[var(--color-accent)] bg-[var(--color-accent)] px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#0d0d0d] font-[var(--font-pixel)] hover:bg-transparent hover:text-[var(--color-accent)]"
             >
               <Sword width={18} height={18} />
               Comecar leitura

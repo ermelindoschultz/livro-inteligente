@@ -154,8 +154,8 @@ export default function EnrichmentWidget({ metadata, currentChapterId, bookId, m
       <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <section className="flex max-h-[min(84svh,46rem)] w-full max-w-[42rem] flex-col overflow-hidden rounded-[28px] border border-[var(--color-line)] bg-[rgba(255,250,241,0.98)] shadow-[0_30px_90px_rgba(47,36,25,0.22)] backdrop-blur-md">
-          <header className="flex items-start justify-between gap-4 border-b border-[var(--color-line)] px-5 py-4 sm:px-6">
+        <section className="flex max-h-[min(84svh,46rem)] w-full max-w-[42rem] flex-col overflow-hidden border-2 border-[var(--color-line)] bg-[var(--color-paper)] shadow-[var(--shadow-card)]">
+          <header className="flex items-start justify-between gap-4 border-b-2 border-[var(--color-line)] px-5 py-4 sm:px-6">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-muted)]">Treinamento</p>
               <h2 className="text-base font-semibold text-[var(--color-ink)]">Pratique esta pagina</h2>
@@ -167,19 +167,19 @@ export default function EnrichmentWidget({ metadata, currentChapterId, bookId, m
             <button
               type="button"
               onClick={handleClose}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/80 text-[var(--color-ink)]"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center border-2 border-[var(--color-line)] bg-transparent text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
               aria-label="Fechar treinamento"
             >
               <X className="h-4 w-4" />
             </button>
           </header>
 
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--color-line)] px-5 py-3 sm:px-6">
+          <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--color-line)] px-5 py-3 sm:px-6">
             <button
               type="button"
               onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}
               disabled={!hasItems || currentIndex === 0}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/80 text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-10 w-10 items-center justify-center border-2 border-[var(--color-line)] bg-transparent text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Pergunta anterior"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -194,7 +194,7 @@ export default function EnrichmentWidget({ metadata, currentChapterId, bookId, m
               type="button"
               onClick={() => setCurrentIndex((value) => Math.min(items.length - 1, value + 1))}
               disabled={!hasItems || currentIndex >= items.length - 1}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-line)] bg-white/80 text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-10 w-10 items-center justify-center border-2 border-[var(--color-line)] bg-transparent text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Proxima pergunta"
             >
               <ChevronRight className="h-4 w-4" />
@@ -205,7 +205,7 @@ export default function EnrichmentWidget({ metadata, currentChapterId, bookId, m
             {currentItem ? (
               <EnrichmentItem key={currentItem.id} item={currentItem} />
             ) : (
-              <div className="rounded-[24px] border border-dashed border-[var(--color-line)] bg-[rgba(255,255,255,0.68)] p-6 text-center">
+              <div className="border-2 border-dashed border-[var(--color-line)] bg-[var(--color-paper-strong)] p-6 text-center">
                 <p className="text-sm font-semibold text-[var(--color-ink)]">Nenhuma pergunta salva ainda</p>
                 <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
                   Gere uma nova pergunta online para adicionar treinamento a esta pagina.
@@ -214,13 +214,13 @@ export default function EnrichmentWidget({ metadata, currentChapterId, bookId, m
             )}
 
             {generationError ? (
-              <div className="mt-4 rounded-[18px] border border-[rgba(138,69,48,0.24)] bg-[var(--color-danger-soft)] px-4 py-3 text-sm text-[var(--color-danger)]">
+              <div className="mt-4 border-2 border-[var(--color-danger)] bg-[rgba(232,64,64,0.12)] px-4 py-3 text-sm text-[var(--color-danger)]">
                 {generationError}
               </div>
             ) : null}
           </div>
 
-          <footer className="flex flex-col gap-3 border-t border-[var(--color-line)] px-5 py-4 sm:px-6">
+          <footer className="flex flex-col gap-3 border-t-2 border-[var(--color-line)] px-5 py-4 sm:px-6">
             <div className="flex items-center justify-between gap-3 text-xs text-[var(--color-muted)]">
               <span>{canGenerateOnline ? 'Geracao online disponivel para este capitulo.' : 'Geracao online indisponivel no momento.'}</span>
               <span className="shrink-0 font-semibold text-[var(--color-ink)]">
@@ -232,7 +232,7 @@ export default function EnrichmentWidget({ metadata, currentChapterId, bookId, m
               type="button"
               onClick={() => setIsConfirmOpen(true)}
               disabled={!canGenerateOnline || isLoadingCoins || isGenerating || (coins ?? 0) <= 0}
-              className="inline-flex items-center justify-center gap-2 rounded-[18px] border border-transparent bg-[var(--color-ink)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[rgba(47,36,25,0.92)] disabled:cursor-not-allowed disabled:opacity-45"
+              className="inline-flex items-center justify-center gap-2 border-2 border-[var(--color-accent)] bg-[var(--color-accent)] px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-[#0d0d0d] font-[var(--font-pixel)] transition hover:bg-transparent hover:text-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-45"
             >
               <Sparkles className="h-4 w-4" />
               <span>Gerar nova pergunta</span>

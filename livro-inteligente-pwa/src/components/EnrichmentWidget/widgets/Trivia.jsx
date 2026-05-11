@@ -2,18 +2,18 @@ import { useState } from 'react'
 
 function getOptionButtonClass({ hasSelection, isSelected, isCorrect }) {
   if (!hasSelection) {
-    return 'border-[var(--color-line)] bg-white/80 text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]'
+    return 'border-[var(--color-line)] bg-[var(--color-paper)] text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]'
   }
 
   if (isCorrect) {
-    return 'border-emerald-300 bg-emerald-50 text-emerald-900'
+    return 'border-[var(--color-success)] bg-[rgba(80,200,120,0.12)] text-[var(--color-success)]'
   }
 
   if (isSelected) {
-    return 'border-[rgba(138,69,48,0.28)] bg-[var(--color-danger-soft)] text-[var(--color-danger)]'
+    return 'border-[var(--color-danger)] bg-[rgba(232,64,64,0.12)] text-[var(--color-danger)]'
   }
 
-  return 'border-[var(--color-line)] bg-[rgba(255,255,255,0.68)] text-[var(--color-muted)]'
+    return 'border-[var(--color-line)] bg-[rgba(255,255,255,0.04)] text-[var(--color-muted)]'
 }
 
 export default function Trivia({ content }) {
@@ -45,9 +45,9 @@ export default function Trivia({ content }) {
               type="button"
               onClick={() => setSelectedOption(label)}
               disabled={hasSelection}
-              className={`flex w-full items-start gap-3 rounded-[18px] border px-4 py-3 text-left text-sm transition disabled:cursor-default ${getOptionButtonClass({ hasSelection, isSelected, isCorrect })}`}
+              className={`flex w-full items-start gap-3 border-2 px-4 py-3 text-left text-sm transition disabled:cursor-default ${getOptionButtonClass({ hasSelection, isSelected, isCorrect })}`}
             >
-              <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-current text-xs font-semibold uppercase">
+              <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center border-2 border-current text-xs font-semibold uppercase">
                 {label}
               </span>
               <span className="min-w-0 flex-1 leading-6">{text}</span>
@@ -58,10 +58,10 @@ export default function Trivia({ content }) {
 
       {hasSelection ? (
         <div
-          className={`rounded-[18px] border px-4 py-3 text-sm leading-6 ${
+          className={`border-2 px-4 py-3 text-sm leading-6 ${
             isAnswerCorrect
-              ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
-              : 'border-[rgba(138,69,48,0.24)] bg-[var(--color-danger-soft)] text-[var(--color-danger)]'
+              ? 'border-[var(--color-success)] bg-[rgba(80,200,120,0.12)] text-[var(--color-success)]'
+              : 'border-[var(--color-danger)] bg-[rgba(232,64,64,0.12)] text-[var(--color-danger)]'
           }`}
         >
           <p className="font-semibold">

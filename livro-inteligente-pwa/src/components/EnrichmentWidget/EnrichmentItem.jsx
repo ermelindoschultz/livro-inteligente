@@ -11,9 +11,9 @@ export default function EnrichmentItem({ item }) {
   const Icon = definition.icon
 
   return (
-    <article className="rounded-[24px] border border-[var(--color-line)] bg-[rgba(255,255,255,0.82)] p-4 shadow-[0_18px_45px_rgba(47,36,25,0.08)]">
+    <article className="border-2 border-[var(--color-line)] bg-[var(--color-paper-strong)] p-4">
       <header className="mb-3 flex items-center gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center border-2 border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
           <Icon className="h-5 w-5" />
         </span>
 
